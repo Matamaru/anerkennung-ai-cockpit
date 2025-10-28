@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Upload Candidate Documents</h1>
+    <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Candidate Name</label>
+          <input type="text" class="form-control" name="candidate_name" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" name="email" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Bundesland (State)</label>
+          <select class="form-select" name="state">
+            {% for st in states %}
+              <option value="{{ st }}">{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Documents (PDF/JPG/PNG)</label>
+          <input class="form-control" type="file" name="files" accept=".pdf,.jpg,.jpeg,.png" multiple required>
+          <div class="form-text">Use clear filenames (e.g., passport.pdf, diploma.pdf) so the MVP can infer documents.</div>
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Analyze</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

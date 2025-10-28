@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h5">Candidate</h2>
+        <ul class="list-unstyled mb-0">
+          <li><strong>Name:</strong> {{ candidate_name }}</li>
+          <li><strong>Email:</strong> {{ email }}</li>
+          <li><strong>State:</strong> {{ state }}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Checklist Status</h2>
+        <div class="row">
+          <div class="col-md-6">
+            <h3 class="h6">Required ({{ required|length }})</h3>
+            <ul>
+              {% for r in required %}<li>{{ r }}</li>{% endfor %}
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h3 class="h6">Detected</h3>
+            {% if present %}
+            <ul>
+              {% for p in present %}<li class="text-success">{{ p }}</li>{% endfor %}
+            </ul>
+            {% else %}
+              <p class="text-muted">No required docs detected from filenames.</p>
+            {% endif %}
+          </div>
+        </div>
+        <hr>
+        <h3 class="h6">Missing</h3>
+        {% if missing %}
+          <ul>
+            {% for m in missing %}<li class="text-danger">{{ m }}</li>{% endfor %}
+          </ul>
+          <p class="small text-muted">Tip: rename files to include keywords (e.g., <em>passport</em>, <em>diploma</em>). In production this uses OCR + LLM.</p>
+        {% else %}
+          <div class="alert alert-success">All required documents appear present 🎉</div>
+        {% endif %}
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary mt-2">Analyze another candidate</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
