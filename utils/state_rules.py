@@ -1,5 +1,13 @@
+#****************************************************************************
+#    Application:   Annerkennung Ai Cockpit
+#    Module:        utils.state_rules         
+#    Author:        Team IGS
+#    Version:       0.0.1
+#****************************************************************************
+
 # Simple, editable checklists per Bundesland for nurse recognition (Anerkennung) MVP.
 # NOTE: This is a starter set for prototyping. Replace/expand with verified, up-to-date rules.
+
 STATE_CHECKLISTS = {
     "Berlin": [
         "Passport",

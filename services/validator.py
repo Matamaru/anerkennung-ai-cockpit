@@ -1,4 +1,15 @@
+#****************************************************************************
+#    Application:   Annerkennung Ai Cockpit
+#    Module:        services.validator         
+#    Author:        Team IGS
+#    Version:       0.0.1
+#****************************************************************************
+
+#=== Imports
+
 import re
+
+#=== Canonical Document Keywords
 
 CANONICAL_DOCS = {
     "Passport": ["passport", "pass", "reiseausweis"],
@@ -14,7 +25,15 @@ CANONICAL_DOCS = {
     "Certified Translations": ["translation", "uebersetzung", "übersetzung"],
 }
 
+
+#=== Document Inference Function
+
 def infer_present_docs(filenames):
+    """
+    Infers which canonical documents are present based on filenames.
+    :param filenames: List of uploaded filenames
+    :return: Set of canonical document names inferred from filenames
+    """
     present = set()
     lower_files = [f.lower() for f in filenames]
     for canon, keywords in CANONICAL_DOCS.items():
