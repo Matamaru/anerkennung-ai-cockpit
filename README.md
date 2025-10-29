@@ -62,3 +62,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## OCR requirements
+
+```
+sudo apt update 
+sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-deu tesseract-ocr-osd
+```
