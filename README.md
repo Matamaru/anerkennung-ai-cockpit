@@ -1,3 +1,8 @@
+<!--  Application:    Anerkennung AI Cockpit    -->
+<!--  Module:         Readme                    -->
+<!--  Author:         Heiko Matamaru, IGS       -->
+<!--  Version:        0.0.1                     -->
+
 # Anerkennung AI Cockpit
 
 ## Problem Statement
@@ -68,3 +73,13 @@ pip install -r requirements.txt
 sudo apt update 
 sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-deu tesseract-ocr-osd
 ```
+
+### PDF2Image
+We need to convert PDF into images. pdf2images needs Poppler.
+
+```
+sudo apt install poppler-utils
+```
+
+
+

@@ -1,7 +1,7 @@
 #****************************************************************************
 #    Application:   Annerkennung Ai Cockpit
 #    Module:        services.validator         
-#    Author:        Team IGS
+#    Author:        Heiko Matamaru, IGS
 #    Version:       0.0.1
 #****************************************************************************
 

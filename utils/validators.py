@@ -1,7 +1,7 @@
 #****************************************************************************
 #    Application:   Annerkennung Ai Cockpit
 #    Module:        utils.validators         
-#    Author:        Team IGS
+#    Author:        Heiko Matamaru, IGS
 #    Version:       0.0.1
 #****************************************************************************
 
