@@ -9,15 +9,15 @@
 import io
 import cv2
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 import pytesseract
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any
 import re
 from dataclasses import dataclass
 from pdf2image import convert_from_bytes
+import pathlib
 
 #=== Helpers =============================================================
-
 def _load_image_from_bytes(b: bytes) -> Image.Image:
     """Load image from bytes, normalize mode to RGB or L as PIL Image."""
     im = Image.open(io.BytesIO(b))
@@ -33,58 +33,83 @@ def _from_cv(arr: np.ndarray) -> Image.Image:
     """Convert OpenCV BGR format to PIL Image."""
     return Image.fromarray(cv2.cvtColor(arr, cv2.COLOR_BGR2RGB))
 
-def _auto_rotate(im: Image.Image) -> Image.Image:
-    """Auto-rotate image based on OSD data from Tesseract."""
-    try:
-        osd = pytesseract.image_to_osd(im)
-        angle = int(re.search(r"Rotate: (\d+)", osd).group(1))
-        if angle and angle % 360 != 0:
-            im = im.rotate(-angle, expand=True)
-    except Exception:
-        pass
-    return im
-
-def _preprocess(im: Image.Image) -> Image.Image:
-    """Preprocess image for better OCR results."""
-    # grayscale, denoise, adaptive binarize, mild sharpen
-    cv = _to_cv(im)
-    gray = cv2.cvtColor(cv, cv2.COLOR_BGR2GRAY)
-    gray = cv2.fastNlMeansDenoising(gray, h=8)
-    bw = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                               cv2.THRESH_BINARY, 35, 11)
-    kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
-    sharp = cv2.filter2D(bw, -1, kernel)
-    return _from_cv(cv2.cvtColor(sharp, cv2.COLOR_GRAY2BGR))
-
-def _ocr(im: Image.Image, lang: str = "eng+deu",
-         psm: int = 6) -> Tuple[str, List[Dict[str, Any]]]:
-    """Perform OCR on the image, returning full text and word-level data.
-    Can later be extended with more languages or custom configs.
+def preprocess_image(im: Image.Image) -> np.ndarray:
+    """Preprocess image for better OCR results.
+    :param image_path: Path to the image file.
+    :return: Preprocessed image as a NumPy array.
     """
-    # OCR config
-    cfg = f"--oem 3 --psm {psm}" # Default OCR Engine Mode 3 (LSTM+Legacy), Page Segmentation Mode
-
-    # Full text    
-    txt = pytesseract.image_to_string(im, lang=lang, config=cfg)
-
-    # Word-level data with bounding boxes and confidence
-    tsv = pytesseract.image_to_data(im, lang=lang, config=cfg, output_type=pytesseract.Output.DICT)
+    # read image
+    im = _to_cv(im)
     
-    # Collect words with positive confidence
-    words = []
-    for i in range(len(tsv["text"])):
-        if int(tsv["conf"][i]) >= 0 and tsv["text"][i].strip():
-            words.append({
-                "text": tsv["text"][i],                                                         # word text
-                "conf": float(tsv["conf"][i]),                                                  # confidence
-                "bbox": [tsv["left"][i], tsv["top"][i], tsv["width"][i], tsv["height"][i]]      # bounding box
-            })
-    return txt, words
+    # Gray
+    gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    
+    # Denoise
+    denoised = cv2.fastNlMeansDenoising(gray, h=8)
+
+    return denoised
+
+def _ocr_predictions(preprocessed_im: np.ndarray, lang: str = "eng+deu",
+         psm: int = 11) -> list:
+    """Perform OCR on the given image.
+    :param preprocessed_im: Preprocessed image as a NumPy array.
+    :param lang: Languages for Tesseract OCR. 
+    :param psm: Page segmentation mode for Tesseract OCR. 
+    :return: List of recognized text strings.
+    """
+    # config for OCR
+    cfg = f"--oem 3 --psm {psm}"
+
+    # Perform OCR
+    df = pytesseract.image_to_data(
+        preprocessed_im, lang=lang, config=cfg, output_type=pytesseract.Output.DATAFRAME)
+
+    # clean dataframe
+    df = df.dropna(subset=['text']) # remove rows with NaN text
+    df = df[df['text'].str.strip() != ''] # remove empty text
+    df = df.reset_index(drop=True) # reset index
+
+    # check confidence and filter
+    df = df[df['conf'] >= 0] # keep only confident predictions
+
+    # lowercase all predictions
+    df['text'] = df['text'].str.lower()
+
+    # prediction list
+    all_predictions = df["text"].to_list() # list of all predicted text
+    return all_predictions
+
+def _ocr_text(preprocessed_im: np.ndarray, lang: str = "eng+deu",
+         psm: int = 3) -> str:
+    """Perform OCR on the given image and return full text.
+    :param preprocessed_im: Preprocessed image as a NumPy array.
+    :param lang: Languages for Tesseract OCR. 
+    :param psm: Page segmentation mode for Tesseract OCR. 
+    :return: Recognized text as a single string.
+    """
+    # config for OCR
+    cfg = f"--oem 3 --psm {psm}"
+    # Perform OCR
+    text = pytesseract.image_to_string(preprocessed_im, lang=lang, config=cfg)
+    return text    
+
+
+def detect_mrz_lines(all_predictions: list) -> list:
+    """Detect MRZ lines from OCR predictions.
+    :param all_predictions: List of recognized text strings.
+    :return: List of detected MRZ lines.
+    """
+    mrz_lines = []
+    
+    # look for lines with at least 3 '<' characters
+    for line in all_predictions:
+        if line.count('<') >= 3:
+            mrz_lines.append(line)
+
+    return mrz_lines
+
 
 #=== Doc classifiers (very light heuristics) =============================
-
-# MRZ line pattern for passports (TD3: 2 lines of 44 chars, A-Z0-9 and <)
-PASSPORT_MRZ_LINE = re.compile(r"^[A-Z0-9<]{30,44}$")
 
 # Hints for document classification
 PASSPORT_HINTS = {"passport", "reisepass", "passeport", "passport no", "passnummer", "staat", "nationality"}
@@ -92,18 +117,15 @@ DIPLOMA_HINTS_DE = {"zeugnis", "hochschule", "universität", "fachhochschule", "
 DIPLOMA_HINTS_EN = {"diploma", "degree", "university", "college", "certificate", "transcript"}  # transcript only as hint
 
 #=== Document classification =============================================
-def classify_doc(ocr_text: str) -> str:
+def classify_doc(predictions: list) -> str:
     """Classify document type based on OCR text content."""
-    text = ocr_text.lower()
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
-    # MRZ detection: two consecutive lines of dense < and A-Z0-9 (~44 chars) is strong passport signal
-    dense_lines = [l.replace(" ", "").replace("\n", "").replace("\r", "").replace("|","") for l in lines]
-    for i in range(len(dense_lines)-1):
-        if PASSPORT_MRZ_LINE.match(dense_lines[i]) and PASSPORT_MRZ_LINE.match(dense_lines[i+1]):
-            return "passport"
-    if any(h in text for h in PASSPORT_HINTS):
+    # MRZ detection
+    mrz_lines = detect_mrz_lines(predictions)
+    if len(mrz_lines) > 0:
         return "passport"
-    if any(h in text for h in DIPLOMA_HINTS_DE | DIPLOMA_HINTS_EN):
+    if any(h in predictions for h in PASSPORT_HINTS):
+        return "passport"
+    if any(h in predictions for h in DIPLOMA_HINTS_DE | DIPLOMA_HINTS_EN):
         return "diploma"
     return "unknown"
 
@@ -114,21 +136,25 @@ DATE_RE = re.compile(r"(?:(?:19|20)\d{2}[-./](?:0?[1-9]|1[0-2])[-./](?:0?[1-9]|[
                      r"(?:(?:0?[1-9]|[12]\d|3[01])[-./](?:0?[1-9]|1[0-2])[-./](?:19|20)\d{2})")
 
 # MRZ TD3 parser (2 lines, 44 chars each) – tolerant cleanup
-def _extract_passport_from_mrz(text: str) -> Dict[str, Any]:
-    """Extract passport fields from MRZ lines in OCR text."""
-    raw_lines = [l.strip() for l in text.splitlines() if l.strip()]
-    lines = []
-    for l in raw_lines:
-        s = re.sub(r"[^A-Z0-9<]", "", l.upper())
-        if PASSPORT_MRZ_LINE.match(s):
-            lines.append(s)
-    # choose the *last* two matching lines (often down at page bottom)
-    if len(lines) >= 2:
-        l1, l2 = lines[-2], lines[-1]
-        # TD3 layout:
-        # L1: P<CCNAME<<GIVEN<<<<<<<<<<<<<<<<<<<<<<<<
-        # L2: PASSPORTNO<CHECK>CCYYMMDD<CHECK>SEX EXP<CHK>NatID<CHK> <<optional
+def _extract_passport_data_from_mrz(mrz_lines: list) -> Dict[str, Any]:
+    """Extract passport fields from MRZ lines in OCR text.
+    :param mrz_lines: List of OCR text lines.
+    :return: Dictionary of extracted fields.
+    """
+    out: Dict[str, Any] = {}
+
+    # TD3 layout:
+    # L1: P<CCNAME<<GIVEN<<<<<<<<<<<<<<<<<<<<<<<<
+    # L2: PASSPORTNO<CHECK>CCYYMMDD<CHECK>SEX EXP<CHK>NatID<CHK> <<optional
+    if len(mrz_lines) == 2:
+        # Clean lines and uppercase
+        l1 = mrz_lines[0].replace(" ", "").upper()
+        l2 = mrz_lines[1].replace(" ", "").upper()
+        
+        # Add to output
         out = {"mrz_line1": l1, "mrz_line2": l2}
+
+        # Parse fields
         try:
             # Extract fields based on fixed positions
             out["document_code"] = l1[0:2]
@@ -143,46 +169,51 @@ def _extract_passport_from_mrz(text: str) -> Dict[str, Any]:
             out["expiry_date_raw"] = l2[21:27]   # YYMMDD
         except Exception:
             pass
-        return out
-    return {}
+    return out
 
-def extract_passport_fields(ocr_text: str) -> Dict[str, Any]:
-    """Extract passport fields from OCR text."""
-    data = _extract_passport_from_mrz(ocr_text)
+def extract_passport_fields(predictions: list) -> Dict[str, Any]:
+    """Extract passport fields from OCR predictions list.
+    :param predictions: List of recognized text strings.
+    :return: Dictionary of extracted fields.
+    """
+    passport_data = _extract_passport_data_from_mrz(detect_mrz_lines(predictions))
+    ocr_text = "\n".join(predictions)
     # Fallback: try to find explicit labels in body text (very rough)
-    if "passport_number" not in data:
+    if "passport_number" not in passport_data:
         m = re.search(r"(passport|passnummer|passport no)\s*[:\-]?\s*([A-Z0-9]{6,})", ocr_text, re.I)
-        if m: data["passport_number"] = m.group(2)
-    # attempt dates
-    dates = DATE_RE.findall(ocr_text)
-    if dates:
-        data.setdefault("dates_detected", list({d for d in dates if isinstance(d, str) and d.strip()}))
-    return data
+        if m: passport_data["passport_number"] = m.group(2)
+    return passport_data
 
 # Diploma field extraction
 # Person name pattern: look for labels like "Name:", "Inhaber:", etc.
 PERSON_NAME_RE = re.compile(r"(name|inhaber|inhaberin|holder|graduate)[:\s]+([A-ZÄÖÜ][^\n,;]{2,70})", re.I)
 # Degree type pattern
-DEGREE_RE = re.compile(r"(Diplom|Bachelor|Master|Magister|Staatsexamen|Doctor|Doktor|PhD)", re.I)
+DEGREE_RE = re.compile(r"(Urkunde|Diplom|Bachelor|Master|Magister|Staatsexamen|Doctor|Doktor|PhD)", re.I)
 
 def extract_diploma_fields(ocr_text: str) -> Dict[str, Any]:
     """Extract diploma fields from OCR text."""
+    # take other psm for ocr
     out: Dict[str, Any] = {}
-    # likely institution (first lines often contain it)
-    lines = [l.strip() for l in ocr_text.splitlines() if l.strip()]
+    # likely institution (first lines often contain it
+    lines = ocr_text.splitlines()
     if lines:
-        out["institution_guess"] = lines[0][:120]
-    m_name = PERSON_NAME_RE.search(ocr_text)
-    if m_name:
-        out["holder_name_guess"] = m_name.group(2).strip()
-    m_degree = DEGREE_RE.search(ocr_text)
-    if m_degree:
-        out["degree_type_guess"] = m_degree.group(0)
+        out["institution_guess"] = lines[0].strip()
+    # holder name
+    m = PERSON_NAME_RE.search(ocr_text)
+    if m:
+        out["holder_name_guess"] = m.group(2).strip()
+    # degree type
+    m = DEGREE_RE.search(ocr_text)
+    if m:
+        out["degree_type_guess"] = m.group(1).strip()
+    # dates
     dates = DATE_RE.findall(ocr_text)
     if dates:
-        out["dates_detected"] = list({d for d in dates if isinstance(d, str) and d.strip()})
-    # simple “is certified copy?” heuristic
-    out["is_copy_hint"] = bool(re.search(r"(beglaubigt|certified copy|amtlich beglaubigt)", ocr_text, re.I))
+        out["dates_detected"] = dates
+    # certified copy hint
+    if re.search(r"(certified copy|beglaubigte kopie|beglaubigung|copy)", ocr_text, re.I):
+        out["is_certified_copy_hint"] = True
+
     return out
 
 #=== Public API ===================================================================
@@ -194,9 +225,9 @@ class OcrResult:
     JSON-serializable.
     """
     doc_type: str
-    text: str
+    predictions: list
+    ocr_text: str
     fields: Dict[str, Any]
-    words: List[Dict[str, Any]]
 
 
 def analyze_bytes(file_bytes: bytes) -> OcrResult:
@@ -211,15 +242,26 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
     else:
         im = _load_image_from_bytes(file_bytes)
 
-    im = _auto_rotate(im)
-    pim = _preprocess(im)
-    text, words = _ocr(pim, lang="eng+deu", psm=6)
-    doc_type = classify_doc(text)
+    pim = preprocess_image(im)
+    predictions = _ocr_predictions(pim)
+    ocr_text = _ocr_text(im, psm=6)
+    print(ocr_text)
+    doc_type = classify_doc(predictions)
     fields = {}
 
     if doc_type == "passport":
-        fields = extract_passport_fields(text)
+        fields = extract_passport_fields(predictions)
+        ocr_text = "\n".join(predictions)
     elif doc_type == "diploma":
-        fields = extract_diploma_fields(text)
+        pass
+        fields = extract_diploma_fields(ocr_text)
+        predictions = ocr_text.splitlines()
+        
+    return OcrResult(doc_type=doc_type, predictions=predictions, ocr_text=ocr_text, fields=fields)
 
-    return OcrResult(doc_type=doc_type, text=text, fields=fields, words=words)
+image_path = "/home/chief/Projects/anerkennung_ai_cockpit/dummy_docs/id_HM.jpg"
+
+p = pathlib.Path(image_path)
+b = p.read_bytes()
+res = analyze_bytes(b)
+print(res)

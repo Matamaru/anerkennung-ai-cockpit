@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, sen
 from werkzeug.utils import secure_filename
 import os
 from config import StrictConfig as Config
-from utils.state_rules import STATE_CHECKLISTS
+from utils.state_rules import get_ui_payload, STATE_CHECKLISTS
 from utils.validators import valid_email, valid_name, ext_allowed
 from services.validator import infer_present_docs
 
@@ -19,6 +19,11 @@ from services.validator import infer_present_docs
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+states_ui = {state: get_ui_payload(state) for state in Config.SUPPORTED_STATES}
+print(states_ui.keys())
+# STATE_CHECKLISTS = {state: [item['key'] for item in states_ui[state]['checklist']] for state in states_ui}
+# print("Loaded states:", list(STATE_CHECKLISTS.keys()))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
