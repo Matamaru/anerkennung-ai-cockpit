@@ -21,7 +21,6 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 states_ui = {state: get_ui_payload(state) for state in Config.SUPPORTED_STATES}
-print(states_ui.keys())
 # STATE_CHECKLISTS = {state: [item['key'] for item in states_ui[state]['checklist']] for state in states_ui}
 # print("Loaded states:", list(STATE_CHECKLISTS.keys()))
 

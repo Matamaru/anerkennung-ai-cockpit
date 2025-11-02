@@ -1,3 +1,33 @@
-from frontend.webapp.app import app
+#****************************************************************************
+#   Application:    Annerkennung Ai Cockpit
+#   Module:		    main	
+#	Author:			Heiko Matamaru, IGS         							
+#	Version:		0.0.1									                
+#****************************************************************************
 
-app.run(debug=True)
+#=== Imports
+from frontend.webapp.app import app
+from backend.datamodule.config import config_db
+from backend.datamodule.datamodule import DataBase
+
+#=== classes and defs
+
+def main():
+	
+    # get db_params from ENV
+	db_params = config_db()
+
+    # Connect to database
+	db = DataBase(db_params)
+	db.connect()
+	db.check_conn()
+	db.close_conn()
+
+	# start app
+	app.run()
+
+
+#=== main program
+
+if __name__ == "__main__":
+    main()
