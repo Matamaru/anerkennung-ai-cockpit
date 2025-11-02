@@ -10,10 +10,10 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from werkzeug.utils import secure_filename
 import os
-from config import StrictConfig as Config
-from utils.state_rules import get_ui_payload, STATE_CHECKLISTS
-from utils.validators import valid_email, valid_name, ext_allowed
-from services.validator import infer_present_docs
+from backend.config import StrictConfig as Config
+from backend.utils.state_rules import get_ui_payload, STATE_CHECKLISTS
+from backend.utils.validators import valid_email, valid_name, ext_allowed
+from backend.services.validator import infer_present_docs
 
 #=== Flask App Setup
 
