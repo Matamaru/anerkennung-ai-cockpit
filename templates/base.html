@@ -4,33 +4,73 @@
 <!--  Version:        0.0.1                     -->
 
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Anerkennung AI Cockpit</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  </head>
-  <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
-        <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">Anerkennung AI Cockpit</a>
-      </div>
-    </nav>
-    <main class="container my-4">
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="alert alert-warning">
-            {% for m in messages %}<div>{{ m }}</div>{% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-      {% block content %}{% endblock %}
-    </main>
-    <footer class="text-center text-muted py-4 small">
-      MVP for TERNXperiment · Replace mock logic with OCR/LLM parsing
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+{% block head_extra %}{% endblock %}
+</head>
+<body class="bg-light text-body" style="--bs-body-color:var(--brand-text)">
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
+<div class="container">
+<a class="navbar-brand d-flex align-items-center gap-2" href="/">
+<img src="{{ url_for('static', filename='img/logo.svg') }}" height="28" alt="Anerkennung‑AI‑Cockpit logo">
+<span class="fw-semibold">Anerkennung‑AI‑Cockpit</span>
+</a>
+<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topnav" aria-controls="topnav" aria-expanded="false" aria-label="Toggle navigation">
+<span class="navbar-toggler-icon"></span>
+</button>
+<div class="collapse navbar-collapse" id="topnav">
+<ul class="navbar-nav ms-auto align-items-lg-center">
+<li class="nav-item"><a class="nav-link" href="#how">How it works</a></li>
+<li class="nav-item"><a class="nav-link" href="#recruiters">Recruiters</a></li>
+<li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+<li class="nav-item ms-lg-2">
+<a class="btn btn-primary" href="/login">Sign in now</a>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+
+
+<!-- Flash messages -->
+<div class="container mt-3">
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+{{ message }}
+<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+</div>
+
+
+<!-- Main content -->
+<main id="content" class="{% block content_class %}{% endblock %}">
+{% block content %}{% endblock %}
+</main>
+
+
+<!-- Footer -->
+<footer class="border-top mt-5 py-4 bg-white">
+<div class="container d-flex flex-column flex-md-row gap-3 justify-content-between align-items-start">
+<div>
+<div class="fw-semibold">Anerkennung‑AI‑Cockpit</div>
+<small class="text-muted">&copy; {{ 2025 }} — All rights reserved.</small>
+</div>
+<ul class="nav flex-column flex-md-row gap-3">
+<li class="nav-item"><a class="nav-link p-0 text-body-secondary" href="/impressum">Impressum</a></li>
+<li class="nav-item"><a class="nav-link p-0 text-body-secondary" href="/privacy">Datenschutz</a></li>
+<li class="nav-item"><a class="nav-link p-0 text-body-secondary" href="/contact">Kontakt</a></li>
+</ul>
+</div>
+</footer>
+
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block body_scripts %}{% endblock %}
+</body>
 </html>

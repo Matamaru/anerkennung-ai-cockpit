@@ -4,39 +4,172 @@
 <!--  Version:        0.0.1                     -->
 
 {% extends 'base.html' %}
+
+
+{% block title %}Fast Lane to Your Nursing Recognition in Germany — Anerkennung‑AI‑Cockpit{% endblock %}
+{% block meta_description %}Upload documents, let OCR prefill the forms, and get guided by recruiters to your Defizitbescheid — faster and simpler with the Anerkennung‑AI‑Cockpit.{% endblock %}
+
+
 {% block content %}
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h1 class="h4 mb-3">Upload Candidate Documents</h1>
-    <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label">Candidate Name</label>
-          <input type="text" class="form-control" name="candidate_name" required>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" name="email" required>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Bundesland (State)</label>
-          <select class="form-select" name="state">
-            {% for st in states %}
-              <option value="{{ st }}">{{ st }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-12">
-          <label class="form-label">Documents (PDF/JPG/PNG)</label>
-          <input class="form-control" type="file" name="files" accept=".pdf,.jpg,.jpeg,.png" multiple required>
-          <div class="form-text">Use clear filenames (e.g., passport.pdf, diploma.pdf) so the MVP can infer documents.</div>
-        </div>
-      </div>
-      <div class="mt-3 d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Analyze</button>
-        <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">Reset</a>
-      </div>
-    </form>
-  </div>
+<!-- Hero -->
+<section class="py-5 py-lg-6 bg-white border-bottom">
+<div class="container">
+<div class="row align-items-center g-4 g-lg-5">
+<div class="col-lg-6">
+<h1 class="display-5 fw-bold">Welcome to the Fast Lane of Your Nursing Recognition in Germany</h1>
+<p class="lead text-secondary mt-3">Anerkennung‑AI‑Cockpit guides international nurses through Germany’s recognition process — <strong>upload</strong>, <strong>OCR‑prefill</strong>, <strong>review</strong>, and move faster to your <em>Defizitbescheid</em> with expert support.</p>
+<div class="d-flex gap-3 mt-4">
+<a href="/login" class="btn btn-primary btn-lg">Sign in now</a>
+<a href="#how" class="btn btn-outline-secondary btn-lg">How it works</a>
 </div>
+<small class="d-block text-muted mt-2">OCR helps prefill your forms — please review for accuracy.</small>
+</div>
+<div class="col-lg-6 text-center">
+<img src="{{ url_for('static', filename='img/hero_nurse_cockpit.webp') }}" class="img-fluid" alt="Nurse in a futuristic cockpit reviewing documents for German recognition" loading="eager" fetchpriority="high">
+</div>
+</div>
+</div>
+</section>
+
+<!-- Trust strip -->
+<section class="py-3 bg-light" aria-label="trust">
+<div class="container d-flex flex-wrap justify-content-center gap-3 gap-md-4 text-secondary small">
+<div class="badge rounded-pill text-bg-light border">Secure upload</div>
+<div class="badge rounded-pill text-bg-light border">GDPR‑compliant</div>
+<div class="badge rounded-pill text-bg-light border">State‑specific checklists</div>
+<div class="badge rounded-pill text-bg-light border">Recruiter guidance</div>
+</div>
+</section>
+
+
+<!-- How it works -->
+<section id="how" class="py-5 py-lg-6 bg-white">
+<div class="container">
+<div class="row align-items-center g-4 g-lg-5">
+<div class="col-lg-6 order-lg-2 text-center">
+<img src="{{ url_for('static', filename='img/process_upload_ocr.webp') }}" class="img-fluid" alt="AI OCR scanning uploaded passport and diploma in web dashboard" loading="lazy">
+</div>
+<div class="col-lg-6 order-lg-1">
+<h2 class="h1 fw-semibold">Upload. Scan. Relax.</h2>
+<ol class="mt-3 ps-3">
+<li class="mb-2"><strong>Upload</strong> your passport, diploma, and certificates.</li>
+<li class="mb-2"><strong>AI OCR</strong> pre‑fills key fields and flags missing items.</li>
+<li class="mb-2"><strong>Review</strong> tiny OCR errors if any, then proceed.</li>
+</ol>
+<div class="text-secondary small mt-2">Supported states in MVP: Berlin, Bavaria, NRW — more coming.</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Value grid -->
+<section class="py-5 bg-light">
+<div class="container">
+<div class="row g-4">
+<div class="col-md-6 col-lg-3">
+<div class="card h-100 rounded-xl shadow-sm">
+<div class="card-body">
+<h3 class="h5">State‑specific checklists</h3>
+<p class="text-secondary mb-0">Clear requirements per state so nothing is missing when you submit.</p>
+</div>
+</div>
+</div>
+<div class="col-md-6 col-lg-3">
+<div class="card h-100 rounded-xl shadow-sm">
+<div class="card-body">
+<h3 class="h5">OCR precision</h3>
+<p class="text-secondary mb-0">Key fields prefilled — you stay in control and confirm the data.</p>
+</div>
+</div>
+</div>
+<div class="col-md-6 col-lg-3">
+<div class="card h-100 rounded-xl shadow-sm">
+<div class="card-body">
+<h3 class="h5">Recruiter oversight</h3>
+<p class="text-secondary mb-0">Experts verify your case and guide you to the next steps.</p>
+</div>
+</div>
+</div>
+<div class="col-md-6 col-lg-3">
+<div class="card h-100 rounded-xl shadow-sm">
+<div class="card-body">
+<h3 class="h5">Security & privacy</h3>
+<p class="text-secondary mb-0">Encrypted uploads and GDPR‑compliant handling throughout.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Recruiter Mission Control -->
+<section id="recruiters" class="py-5 py-lg-6 bg-white">
+<div class="container">
+<div class="row align-items-center g-4 g-lg-5">
+<div class="col-lg-6 text-center">
+<img src="{{ url_for('static', filename='img/recruiter_dashboard.webp') }}" class="img-fluid" alt="Recruiter dashboard with candidate statuses and Germany map" loading="lazy">
+</div>
+<div class="col-lg-6">
+<h2 class="h1 fw-semibold">Guided by Experts, Powered by AI</h2>
+<ul class="mt-3">
+<li>Status tracking: Ready · Missing · Under Review</li>
+<li>State coverage panel and timelines</li>
+<li>Clear next steps sent by recruiters</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+
+<!-- Success -->
+<section class="py-5 bg-light">
+<div class="container">
+<div class="row align-items-center g-4 g-lg-5">
+<div class="col-lg-6 order-lg-2 text-center">
+<img src="{{ url_for('static', filename='img/success_nurse_certificate.webp') }}" class="img-fluid" alt="Nurse holding Anerkennung certificate with golden checkmark" loading="lazy">
+</div>
+<div class="col-lg-6 order-lg-1">
+<h2 class="h1 fw-semibold">Mission accomplished</h2>
+<p class="text-secondary">Your <em>Defizitbescheid</em>: achieved — faster and with fewer detours.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="py-5 py-lg-6 bg-white">
+<div class="container">
+<h2 class="h1 fw-semibold mb-4">FAQ</h2>
+<div class="accordion" id="faqAcc">
+{% set faqs = [
+("Which documents do I need?","Passport, diploma, certificates of professional experience, and if applicable certified translations/apostille."),
+("How long does Anerkennung take?","Varies by state and completeness. Our cockpit keeps you on track and reduces back‑and‑forth."),
+("What if OCR misreads something?","You can edit any field. Recruiters also verify before submission."),
+("Is my data secure?","Yes — encrypted in transit and at rest. GDPR‑compliant handling."),
+("Which states are supported?","MVP: Berlin, Bavaria, NRW. We are expanding to more states.")
+] %}
+{% for q,a in faqs %}
+<div class="accordion-item">
+<h2 class="accordion-header" id="h{{ loop.index }}">
+<button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#c{{ loop.index }}" aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="c{{ loop.index }}">{{ q }}</button>
+</h2>
+<div id="c{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="h{{ loop.index }}" data-bs-parent="#faqAcc">
+<div class="accordion-body text-secondary">{{ a }}</div>
+</div>
+</div>
+{% endfor %}
+</div>
+</div>
+</section>
+
+
+<!-- Final CTA -->
+<section class="py-5 brand-gradient text-white">
+<div class="container text-center">
+<h3 class="mb-3 fw-semibold">Ready for takeoff?</h3>
+<p class="mb-4">Start now — your cockpit is ready.</p>
+<a class="btn btn-light btn-lg rounded-xl" href="/login">Sign in now</a>
+</div>
+</section>
 {% endblock %}

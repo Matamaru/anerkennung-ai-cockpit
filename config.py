@@ -26,3 +26,4 @@ class StrictConfig(BaseConfig):
         "image/jpeg",
         "image/png",
     }
+    SUPPORTED_STATES = os.getenv("SUPPORTED_STATES", "BE,BY,NRW").split(",")
