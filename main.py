@@ -6,7 +6,7 @@
 #****************************************************************************
 
 #=== Imports
-from frontend.webapp.app import app
+from frontend.webapp import create_app
 from backend.datamodule.config import config_db
 from backend.datamodule.datamodule import DataBase
 
@@ -24,7 +24,8 @@ def main():
 	db.close_conn()
 
 	# start app
-	app.run()
+	app = create_app()
+	app.run(debug=True)
 
 
 #=== main program
