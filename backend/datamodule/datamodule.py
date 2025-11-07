@@ -8,6 +8,7 @@
 #=== Imports
 
 import psycopg2
+from backend.datamodule.models.user_sql import CREATE_TABLE_USERS
 
 #=== Defs and classes
 
@@ -32,3 +33,12 @@ class DataBase:
 			print('Connection to database established.')
 		else:
 			print('No connection to database.') 
+
+	def create_tables(self):
+		"""Create necessary tables in the database."""
+		self.cursor.execute(CREATE_TABLE_USERS)			
+		print('Database tables created if not existing.')
+		# Add more table creations as needed here
+
+
+	

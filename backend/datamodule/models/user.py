@@ -11,11 +11,12 @@ import psycopg2
 from uuid import uuid4
 from dataclasses import dataclass
 import logging
+from flask_login import UserMixin
 
 from backend.datamodule.models.basemodel import *
-from backend.datamodule import db
 from backend.utils.creds import Creds
 from backend.datamodule.models.user_sql import *
+from backend.datamodule.datamodule import db
 
 
 #=== Logger
@@ -42,7 +43,7 @@ creds = Creds()
 
 #=== defs and classes
 
-class User(Model):
+class User(Model, UserMixin):
     def __init__(self, username, password, salt, pepper, email, id):  
         """
         Initialize the user
@@ -216,6 +217,43 @@ class User(Model):
         is_peppered = (
             self.password == self.generate_hashed_password(password, self.pepper))
         return is_peppered
+    
+    ###================###
+    ### flask-login methods ###
+    ###================###
+    def get_id(self):
+        """
+        Returns the id of the user.
+        return: id of the user
+        """
+        return self.id
+    
+    def is_active(self):
+        """
+        This property should return True if this is an active user - in addition to being authenticated, they also have activated their account, not been suspended, or any condition your application has for rejecting an account. Inactive accounts may not log in (without being forced of course).
+        """
+        if self.id:
+            return True
+        else:
+            return False    
+    
+    def is_authenticated(self):
+        """
+        This property should return True if the user is authenticated, i.e. they have provided valid credentials. (Only authenticated users will fulfill the criteria of login_required.)
+        """
+        if self.id:
+            return True
+        else:
+            return False
+        
+    def is_anonymous(self):
+        """
+        This property should return True if this is an anonymous user. (Actual users should return False instead.)
+        """
+        if self.id:
+            return False
+        else:
+            return True
     
     ### STATIC METHODS ###
     ###================### 

@@ -7,20 +7,17 @@
 
 #=== Imports
 from frontend.webapp import create_app
-from backend.datamodule.config import config_db
-from backend.datamodule.datamodule import DataBase
+from backend.datamodule import db
 
 #=== classes and defs
 
 def main():
-	
-    # get db_params from ENV
-	db_params = config_db()
-
-    # Connect to database
-	db = DataBase(db_params)
+	# setup db
 	db.connect()
 	db.check_conn()
+	db.create_tables()
+
+	# close db connection
 	db.close_conn()
 
 	# start app
