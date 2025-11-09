@@ -1,3 +1,12 @@
+#****************************************************************************
+#    Application:   Anerkennung AI Cockpit
+#    Module:        frontend.webapp.auth.routes
+#    Author:        Heiko Matamaru, IGS
+#    Version:       0.0.1
+#****************************************************************************
+
+#=== Imports
+
 from flask import render_template, request, jsonify, url_for
 from . import auth_bp
 

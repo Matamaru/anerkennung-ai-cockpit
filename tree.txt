@@ -1,0 +1,136 @@
+.
+├── backend
+│   ├── config.py
+│   ├── datamodule
+│   │   ├── config.py
+│   │   ├── datamodule.py
+│   │   ├── __init__.py
+│   │   ├── logs
+│   │   │   ├── models.log
+│   │   │   └── user.log
+│   │   ├── models
+│   │   │   ├── basemodel.py
+│   │   │   ├── __init__.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── basemodel.cpython-312.pyc
+│   │   │   │   ├── __init__.cpython-312.pyc
+│   │   │   │   ├── user.cpython-312.pyc
+│   │   │   │   └── user_sql.cpython-312.pyc
+│   │   │   ├── user.py
+│   │   │   └── user_sql.py
+│   │   └── __pycache__
+│   │       ├── config.cpython-312.pyc
+│   │       ├── datamodule.cpython-312.pyc
+│   │       └── __init__.cpython-312.pyc
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── config.cpython-312.pyc
+│   │   └── __init__.cpython-312.pyc
+│   ├── services
+│   │   ├── __init__.py
+│   │   ├── ocr.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-312.pyc
+│   │   │   ├── ocr.cpython-312.pyc
+│   │   │   └── validator.cpython-312.pyc
+│   │   └── validator.py
+│   ├── uploads
+│   └── utils
+│       ├── creds.py
+│       ├── dummy_docs
+│       │   ├── anerkennung_dummy_docs.zip
+│       │   ├── anerkennung_dummy_images.zip
+│       │   ├── Biometrie-reisepass-deutsch2.jpg
+│       │   ├── Biometrie-reisepass-deutsch.jpg
+│       │   ├── certificate_HM.pdf
+│       │   ├── cv_english.pdf
+│       │   ├── cv_german_clear.jpg
+│       │   ├── cv_german.pdf
+│       │   ├── cv_scanned_noisy.jpg
+│       │   ├── degree_HM.pdf
+│       │   ├── diploma_certified.jpg
+│       │   ├── diploma_good_bavaria.pdf
+│       │   ├── diploma_partial.jpg
+│       │   ├── diploma_partial_scan.pdf
+│       │   ├── handwritten_note.jpg
+│       │   ├── id_card_good.jpg
+│       │   ├── id_card_good.pdf
+│       │   ├── id_HM.jpg
+│       │   ├── misc_handwritten_note.pdf
+│       │   ├── passport_blurry.jpg
+│       │   ├── passport_blurry.pdf
+│       │   ├── passport_clear.jpg
+│       │   ├── passport_cropped.jpg
+│       │   ├── passport_GB.jpg
+│       │   ├── passport_good_berlin.pdf
+│       │   ├── Passport_india.png
+│       │   ├── passport_lowres_rotated.jpg
+│       │   ├── passport_singapure.png
+│       │   ├── translation_diploma_certified.pdf
+│       │   ├── translation_diploma_uncertified.pdf
+│       │   ├── translation_uncertified_copy.jpg
+│       │   ├── work_reference_good.pdf
+│       │   ├── work_reference_incomplete.jpg
+│       │   └── work_reference_incomplete.pdf
+│       ├── __init__.py
+│       ├── __pycache__
+│       │   ├── creds.cpython-312.pyc
+│       │   ├── __init__.cpython-312.pyc
+│       │   ├── state_rules.cpython-312.pyc
+│       │   └── validators.cpython-312.pyc
+│       ├── state_rules.py
+│       └── validators.py
+├── documentation
+│   └── Roadmap_anerkennung_ai_copilot.odt
+├── frontend
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-312.pyc
+│   └── webapp
+│       ├── auth
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   │   ├── __init__.cpython-312.pyc
+│       │   │   └── routes.cpython-312.pyc
+│       │   └── routes.py
+│       ├── __init__.py
+│       ├── main
+│       │   ├── errors.py
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   │   ├── __init__.cpython-312.pyc
+│       │   │   └── routes.cpython-312.pyc
+│       │   └── routes.py
+│       ├── __pycache__
+│       │   ├── app.cpython-312.pyc
+│       │   └── __init__.cpython-312.pyc
+│       ├── static
+│       │   ├── css
+│       │   │   └── styles.css
+│       │   ├── img
+│       │   │   ├── hero_nurse_cockpit.webp
+│       │   │   ├── logo_anerkennung_ai_cockpit.svg
+│       │   │   ├── logo_simplified_gimp.svg
+│       │   │   ├── logo_simplified.svg
+│       │   │   ├── logo.svg
+│       │   │   ├── OIP-1997717175.jpeg
+│       │   │   ├── process_upload_ocr.webp
+│       │   │   ├── recruiter_dashboard.webp
+│       │   │   └── success_nurse_certificate.webp
+│       │   └── js
+│       │       └── app.js
+│       └── templates
+│           ├── auth
+│           │   └── login_modal.html
+│           ├── base.html
+│           ├── error.html
+│           ├── index.html
+│           └── results.html
+├── main.py
+├── __pycache__
+│   └── config.cpython-312.pyc
+├── README.md
+├── requirements.txt
+└── tree.txt
+
+30 directories, 104 files

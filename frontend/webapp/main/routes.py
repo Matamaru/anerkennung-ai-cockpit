@@ -1,14 +1,27 @@
+#****************************************************************************
+#    Application:   Anerkennung AI Cockpit
+#    Module:        frontend.webapp.main.routes
+#    Author:        Heiko Matamaru, IGS
+#    Version:       0.0.1
+#****************************************************************************
+
+#=== Imports
+
 from flask import (
+
     render_template, request, redirect, url_for, flash,
     send_from_directory, current_app
 )
 from werkzeug.utils import secure_filename
 import os
 
-from . import main_bp
+from frontend.webapp.main import main_bp
 from backend.utils.state_rules import STATE_CHECKLISTS
 from backend.utils.validators import valid_email, valid_name
 from backend.services.validator import infer_present_docs
+
+
+#=== Helper functions
 
 def _allowed_file(filename: str) -> bool:
     return (
@@ -16,6 +29,8 @@ def _allowed_file(filename: str) -> bool:
         filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
     )
 
+
+#=== Routes
 @main_bp.route('/')
 def index():
     return render_template('index.html', states=sorted(STATE_CHECKLISTS.keys()))

@@ -1,7 +1,8 @@
 #****************************************************************************
-#		Module:		backend.datamodule.models.user (Anerkennung AI Cockpit)	*
-#		Author:		Heiko Matamaru, IGS 						            *
-#		Version:	0.0.1										            *
+#   Application:	Anerkennung AI Cockpit							        *
+#	Module:		    backend.datamodule.models.user                          *
+#	Author:		    Heiko Matamaru, IGS    						            *
+#	Version:	    0.0.1									                *
 #****************************************************************************
 
 #=== Imports
@@ -12,12 +13,20 @@ from uuid import uuid4
 from dataclasses import dataclass
 import logging
 from flask_login import UserMixin
+import os
+from dotenv import load_dotenv
 
 from backend.datamodule.models.basemodel import *
 from backend.utils.creds import Creds
 from backend.datamodule.models.user_sql import *
-from backend.datamodule.datamodule import db
+from backend.datamodule import db
 
+
+#=== Load environment variables
+load_dotenv()
+admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+admin_password = os.getenv('ADMIN_PASSWORD', 'admin')
+admin_email = os.getenv('ADMIN_EMAIL', 'admin@admin.de')
 
 #=== Logger
 
@@ -44,19 +53,27 @@ creds = Creds()
 #=== defs and classes
 
 class User(Model, UserMixin):
-    def __init__(self, username, password, salt, pepper, email, id):  
+    def __init__(
+            self, 
+            username: str, 
+            password: str,
+            email:str, 
+            salt = None, 
+            pepper = None, 
+            id = None):  
         """
         Initialize the user
         :param username: username
         :param password: password
+        :param email: email
         :param salt: salt
         :param pepper: pepper
-        :param email: email
         :param id: id
         """    
         super().__init__()  
         self.username = username
         self.password = password
+        self.email = email
         if salt:
             self.salt = salt
         else:
@@ -65,7 +82,6 @@ class User(Model, UserMixin):
             self.pepper = pepper
         else:
             self.pepper = self.make_salt()
-        self.email = email
         if id:
             self.id = id
         else:
@@ -274,9 +290,9 @@ class User(Model, UserMixin):
         """
         # get list of user_tuples
         user = User.select_where_column_equals(
-            SELECT_USER_BY_USERNAME, 
-            'username', 
-            username)
+            sql_select_model = SELECT_ALL_USERS, 
+            column = 'username', 
+            value = username)
         if user:
             return True, user[0]
         else:
@@ -394,7 +410,16 @@ class User(Model, UserMixin):
         return: User object from dict
         """
         return User(**user_dict)
-    
+
+    @staticmethod
+    def create_admin(
+        admin_username: str = admin_username,
+        admin_password: str = admin_password,
+        admin_email: str = admin_email):
+        admin = User(username = admin_username,
+                     password=admin_password,
+                     email=admin_email)
+        return admin    
 
 def main():
     user = User(
@@ -409,6 +434,8 @@ def main():
     print(User.select_all(SELECT_ALL_USERS))
     user.delete()
     print(User.select_all(SELECT_ALL_USERS))
+
+
 
     
 
