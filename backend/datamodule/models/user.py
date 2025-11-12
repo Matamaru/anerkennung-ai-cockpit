@@ -90,59 +90,67 @@ class User(Model, UserMixin):
     def insert(self) -> tuple:
         """
         Checks valid user data and inserts valid user into the database.
-        return: tuple of the user
+        Return: tuple of the user or None, if error
         """
-        is_user, user = User.username_in_db(self.username)
-        # check if username already in db
+        is_user, _ = User.username_in_db(self.username)
         if is_user:
-            # check if email already in db
-            is_email, user = User.email_in_db(self.email)
-            if is_email:
-                logger.error('Email already in use')
-                raise InsertError('Email already in use')           
-            else:
-                # check if password is valid
-                if not self.valid_password(self.password):
-                    logger.error('Password not valid')
-                    raise InsertError('Password not valid: Use at least 12 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character')
-                else:
-                    # check if email is valid
-                    if not self.valid_email(self.email):
-                        logger.error('Email not valid')
-                        raise InsertError('Email not valid')
-                    else:
-                        # check if db connection is valid
-                        try:
-                            db.connect() 
-                        except DatabaseConnectionError as error:
-                            logger.error(error)
-                            raise DatabaseConnectionError(error)
-                        finally:
-                            # insert user into db
-                            try:
-                                hashed_pwd_salted = User.generate_hashed_password(
-                                    self.password, self.salt)
-                                hashed_pwd_peppered = User.generate_hashed_password(
-                                    hashed_pwd_salted, self.pepper)
-                                db.cursor.execute(
-                                    INSERT_USER, (
-                                        self.username, 
-                                        hashed_pwd_peppered,
-                                        self.email, 
-                                        self.salt, 
-                                        self.pepper,
-                                        self.id))
-                                tuple_data = db.cursor.fetchone()
-                                # set changed data to user
-                                self.password = tuple_data[1]
-                                self.id = tuple_data[5]
-                                return tuple_data
-                            except (Exception, psycopg2.DatabaseError) as error:
-                                logger.error(error)
-                                raise InsertError(error)
-                            finally:
-                                db.close_conn()
-            
+#            print(f"{self.username} is already in database.")
+            logger.error("Username already in use")
+            raise InsertError("Username already in use")
+#        else:
+#            print(f"{self.username} is not in database yet.")
+
+        is_email, _ = User.email_in_db(self.email)
+        if is_email:
+#            print(f"{self.email} is already in database.")
+            logger.error('Email already in use')
+            raise InsertError('Email already in use')
+#        else:
+#            print(f"{self.email} is not in database yet.")
+
+        if not self.valid_password(self.password):
+#            print("Password not valid")
+            logger.error('Password not valid')
+            raise InsertError('Password not valid: Use at least 12 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character')
+
+        if not self.valid_email(self.email):
+#            print("Email not valid")
+            logger.error('Email not valid')
+            raise InsertError('Email not valid')
+
+        try:
+            db.connect()
+            hashed_pwd_salted = User.generate_hashed_password(self.password, self.salt)
+            hashed_pwd_peppered = User.generate_hashed_password(hashed_pwd_salted, self.pepper)
+            # Make sure INSERT_USER uses RETURNING * if you want to fetch the inserted row!
+            db.cursor.execute(
+                INSERT_USER,
+                (
+                    self.username, 
+                    hashed_pwd_peppered,
+                    self.email, 
+                    self.salt, 
+                    self.pepper,
+                    self.id
+                )
+            )
+            tuple_data = db.cursor.fetchone()
+            if tuple_data:    # Only set attributes if data is returned
+                self.password = tuple_data[1]
+                self.id = tuple_data[5]
+#            print(f"User {self.username} successfully saved in database.")
+            return tuple_data
+        except DatabaseConnectionError as error:
+#            print("DatabaseConnectionError")
+            logger.error(error)
+            raise
+        except (Exception, psycopg2.DatabaseError) as error:
+#            print("InsertError")
+            logger.error(error)
+            raise InsertError(error)
+        finally:
+            db.close_conn()           
+
     def update(self, values: tuple) -> tuple:
         """
         Checks valid user data and updates valid user into the database.
@@ -215,7 +223,7 @@ class User(Model, UserMixin):
         Checks if password is valid.
         return: True if valid, False if not valid
         """
-        return creds.check_secure_password(password)['b_secure']
+        return creds.check_valid_password(password)['b_valid']
     
     def valid_email(self, email) -> bool:
         """

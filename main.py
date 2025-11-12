@@ -18,13 +18,17 @@ def main():
 	db.check_conn()
 	db.create_tables()
 	admin = User.create_admin()
-	print(admin.to_json())
+#	print(admin.to_json())
 	is_user, user  = User.username_in_db(admin.username)
 	if is_user:
 		print(f"User {admin.username} already registered.")
 	else:
 		print(f"User {admin.username} is going to be registered ...")
-#		admin.insert()
+		admin_tuple = admin.insert()
+		if admin:
+			print(f"User {admin_tuple[0]} registered successfully.")
+		else:
+			print(f"User {admin_tuple[0]} could not be registered.")
     
     
 	# close db connection

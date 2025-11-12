@@ -52,10 +52,12 @@ class Creds:
 
 		# Check for empty password	
 		if not password:
+			print("No password given!")
 			return {'b_valid': False, 'l_msg': ['Error: No password!']}
 
 		# Escape all punctuation for safe use in regex
 		sym_class = re.escape(''.join(self.l_symbols))
+		# print(sym_class)
 
 		#********************************************
 		# Regex pattern explanation
@@ -73,19 +75,42 @@ class Creds:
 
 
 		if len(password) < min_length:
+#			print(f"Password length of {password} < {min_length}")
 			l_msg.append(f'Error: Password must have at least {min_length} characters!')
+#		else:
+#			print(f"Password length of {password} >= {min_length}")
+		
 		if not re.search(r'[a-z]', password):
+#			print(f"No uncapitalized char in {password}")
 			l_msg.append('Error: No uncapitalized character in password!')
-		if not re.search(r'[A-Z]', password):
-			l_msg.append('Error: No capitalized character in password!')
-		if not re.search(r'\d', password):
-			l_msg.append('Error: No digit character in password!')
-		if not re.search(rf'[{sym_class}]', password):
-			l_msg.append('Error: No symbol character in password!')
-		if not re.search(r'\s', password):
-			l_msg.append(f'Error: Password must not contain whitespace!')
+#		else:
+#			print(f"Uncapitalized char found in {password}")
 
-		return {'b_valid': False, 'l_msg': l_msg}
+		if not re.search(r'[A-Z]', password):
+#			print(f"No capitalized char in {password}")
+			l_msg.append('Error: No capitalized character in password!')
+#		else:
+#			print(f"Capitalized char found in {password}")
+
+		if not re.search(r'\d', password):
+#			print(f"No digit in {password}")
+			l_msg.append('Error: No digit character in password!')
+#		else:
+#			print(f"Digit found in {password}")
+
+		if not re.search(rf'[{sym_class}]', password):
+#			print(f"No symbol in {password}")
+			l_msg.append('Error: No symbol character in password!')
+#		else:
+#			print(f"Symbol found in {password}")
+
+		if re.search(r'\s', password):
+#			print(f"{password} contains whitespace.")
+			l_msg.append(f'Error: Password must not contain whitespace!')
+#		else:
+#			print(f"{password} contains no whitespace.")
+
+		return {'b_valid': len(l_msg) == 0, 'l_msg': l_msg}
 
 
 	def create_secure_password(self, length: int = 25) -> str:
@@ -198,7 +223,7 @@ class Creds:
 		:param mysalt: str
 		:return hashed_password: str
 		"""
-		salted_password = (salt + password).encode('utf-8')
+		salted_password = (my_salt + password).encode('utf-8')
 		hashed_password = hashlib.sha256(salted_password).hexdigest() 
 		return hashed_password
 
