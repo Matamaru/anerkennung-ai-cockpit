@@ -71,66 +71,66 @@ class Model(object):
         for key, value in kwargs.items():
             self.__dict__[key] = value
             
-    def insert(self, sql_insert_model: str, values: tuple) -> int:
-        """
-        Insert a new row into the table
-        :param sql: sql query
-        :param values: values to insert
-        :return: id of inserted row
-        """
-        try:
-            db.connect()
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise DatabaseConnectionError(error)
-        finally:
-            try:
-                db.cursor.execute(sql_insert_model, values)
-                # if RETURNING in sql sends id back, fetch id as tuple from db
-                tuple_id = db.cursor.fetchone()
-                # set self.id to id from db
-                self.id = tuple_id[0]
-                return self.id
-            except (Exception, psycopg2.DatabaseError) as error:
-                raise InsertError(error)
-            finally:
-                db.close_conn()
-
-    def update(self, sql_update_model: str, values: tuple) -> tuple:
-        """
-        Update a row in the table
-        :param sql: sql query
-        :param values: values to update
-        :return: tuple of updated row
-        """
-        db.connect()
-        try:
-            db.cursor.execute(sql_update_model, values)
-            # if RETURNING in sql sends updated back, 
-            # fetch data as tuple from db
-            tuple_data = db.cursor.fetchone()
-            # set all data from db to self
-            self.__dict__.update(tuple_data)
-            return tuple_data
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
-
-    def delete(self, sql_delete_model: str, value: tuple) -> int:
-        """
-        Delete a row from the table
-        :param sql: sql query   
-        :param value: value to identify row to delete
-        :return: id of deleted row
-        """
-        db.connect()
-        try:
-            db.cursor.execute(sql_delete_model, value)
-            return value[0]
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
+#    def insert(self, sql_insert_model: str, values: tuple) -> int:
+#        """
+#        Insert a new row into the table
+#        :param sql: sql query
+#        :param values: values to insert
+#        :return: id of inserted row
+#        """
+#        try:
+#            db.connect()
+#        except (Exception, psycopg2.DatabaseError) as error:
+#            raise DatabaseConnectionError(error)
+#        finally:
+#            try:
+#                db.cursor.execute(sql_insert_model, values)
+#                # if RETURNING in sql sends id back, fetch id as tuple from db
+#                tuple_id = db.cursor.fetchone()
+#                # set self.id to id from db
+#                self.id = tuple_id[0]
+#                return self.id
+#            except (Exception, psycopg2.DatabaseError) as error:
+#                raise InsertError(error)
+#            finally:
+#                db.close_conn()
+#
+#    def update(self, sql_update_model: str, values: tuple) -> tuple:
+#        """
+#        Update a row in the table
+#        :param sql: sql query
+#        :param values: values to update
+#        :return: tuple of updated row
+#        """
+#        db.connect()
+#        try:
+#            db.cursor.execute(sql_update_model, values)
+#            # if RETURNING in sql sends updated back, 
+#            # fetch data as tuple from db
+#            tuple_data = db.cursor.fetchone()
+#            # set all data from db to self
+#            self.__dict__.update(tuple_data)
+#            return tuple_data
+#        except (Exception, psycopg2.DatabaseError) as error:
+#            print(error)
+#        finally:
+#            db.close_conn()
+#
+#    def delete(self, sql_delete_model: str, value: tuple) -> int:
+#        """
+#        Delete a row from the table
+#        :param sql: sql query   
+#        :param value: value to identify row to delete
+#        :return: id of deleted row
+#        """
+#        db.connect()
+#        try:
+#            db.cursor.execute(sql_delete_model, value)
+#            return value[0]
+#        except (Exception, psycopg2.DatabaseError) as error:
+#            print(error)
+#        finally:
+#            db.close_conn()
 
     def to_tuple(self) -> tuple:
         """

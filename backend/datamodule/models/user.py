@@ -20,7 +20,7 @@ from backend.datamodule.models.basemodel import *
 from backend.utils.creds import Creds
 from backend.datamodule.models.user_sql import *
 from backend.datamodule import db
-
+from backend.datamodule.models.role import Role
 
 #=== Load environment variables
 load_dotenv()
@@ -59,7 +59,9 @@ class User(Model, UserMixin):
             password: str,
             email:str, 
             salt = None, 
-            pepper = None, 
+            pepper = None,
+            role_id: str = None,
+            b_admin: bool = False, 
             id = None):  
         """
         Initialize the user
@@ -68,6 +70,8 @@ class User(Model, UserMixin):
         :param email: email
         :param salt: salt
         :param pepper: pepper
+        :param role_id: role_id
+        :param b_admin: b_admin
         :param id: id
         """    
         super().__init__()  
@@ -82,6 +86,14 @@ class User(Model, UserMixin):
             self.pepper = pepper
         else:
             self.pepper = self.make_salt()
+        if role_id:
+            self.role_id = role_id
+        else:
+            self.role_id = None
+        if b_admin:
+            self.b_admin = b_admin
+        else:
+            self.b_admin = False
         if id:
             self.id = id
         else:
@@ -94,62 +106,72 @@ class User(Model, UserMixin):
         """
         is_user, _ = User.username_in_db(self.username)
         if is_user:
-#            print(f"{self.username} is already in database.")
             logger.error("Username already in use")
             raise InsertError("Username already in use")
-#        else:
-#            print(f"{self.username} is not in database yet.")
 
         is_email, _ = User.email_in_db(self.email)
         if is_email:
-#            print(f"{self.email} is already in database.")
             logger.error('Email already in use')
             raise InsertError('Email already in use')
-#        else:
-#            print(f"{self.email} is not in database yet.")
 
         if not self.valid_password(self.password):
-#            print("Password not valid")
             logger.error('Password not valid')
-            raise InsertError('Password not valid: Use at least 12 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character')
+            raise InsertError('Password not valid')
 
         if not self.valid_email(self.email):
-#            print("Email not valid")
             logger.error('Email not valid')
             raise InsertError('Email not valid')
 
+        if self.role_id is None:
+            # assign default role 'candidate' to new user
+            role_candidate = Role.get_by_role_name('candidate')
+            if role_candidate:
+                self.role_id = role_candidate.role_id
+            else:
+                logger.error('Default role candidate not found')
+                raise InsertError('Default role candidate not found')
+
         try:
             db.connect()
+            # generate hashed password with salt and pepper
             hashed_pwd_salted = User.generate_hashed_password(self.password, self.salt)
             hashed_pwd_peppered = User.generate_hashed_password(hashed_pwd_salted, self.pepper)
-            # Make sure INSERT_USER uses RETURNING * if you want to fetch the inserted row!
-            db.cursor.execute(
-                INSERT_USER,
-                (
-                    self.username, 
-                    hashed_pwd_peppered,
-                    self.email, 
-                    self.salt, 
-                    self.pepper,
-                    self.id
-                )
+            # create values tuple for insert
+            values = (
+                self.id,
+                self.role_id,
+                self.username,
+                hashed_pwd_peppered,
+                self.email,
+                self.b_admin,
+                self.salt,
+                self.pepper
             )
+            # insert user into db
+            db.cursor.execute(INSERT_USER, values)
             tuple_data = db.cursor.fetchone()
-            if tuple_data:    # Only set attributes if data is returned
-                self.password = tuple_data[1]
-                self.id = tuple_data[5]
-#            print(f"User {self.username} successfully saved in database.")
-            return tuple_data
-        except DatabaseConnectionError as error:
-#            print("DatabaseConnectionError")
-            logger.error(error)
-            raise
+
+            # Check if data was returned from the query
+            if tuple_data:
+                logger.debug(f"User data inserted successfully: {tuple_data}")
+                self.password = tuple_data[3]  # Assuming password is at index 3
+                self.id = tuple_data[0]  # Assuming ID is at index 0
+                # set b_admin from tuple_data via role_id
+                if Role.get_by_role_id(self.role_id):
+                    self.b_admin = (Role.get_by_role_id(self.role_id).role_name == 'admin')
+                else:
+                    self.b_admin = False
+            else:
+                logger.error("No data returned after user insert")
+                raise InsertError("No data returned after insert query")
+
         except (Exception, psycopg2.DatabaseError) as error:
-#            print("InsertError")
-            logger.error(error)
+            logger.error(f"Error inserting user: {error}")
             raise InsertError(error)
+
         finally:
-            db.close_conn()           
+            db.close_conn()
+            return tuple_data
 
     def update(self, values: tuple) -> tuple:
         """
@@ -162,14 +184,14 @@ class User(Model, UserMixin):
         # check if username is already in db
         # if yes, check if it is the same user
         # print(f'is_user: {is_user}\nuser: {user}')
-        if is_user and user[5] != self.id:
+        if is_user and user[0] != self.id:
             raise UpdateError('Username already in use')
         else:
             # in case user wants to update email
             # check if email is already in db
             # if yes, check if it is the same user
             is_email, user = User.email_in_db(self.email)
-            if is_email and user[5] != self.id:
+            if is_email and user[0] != self.id:
                 logger.error('Email already in use')
                 raise UpdateError('Email already in use')
             else:
@@ -185,9 +207,14 @@ class User(Model, UserMixin):
                         # fetch data as tuple from db
                         tuple_data = db.cursor.fetchone()
                         # set all data from db to self
-                        self.username = tuple_data[0]
-                        self.password = tuple_data[1]
-                        self.email = tuple_data[5]
+                        self.role_id = tuple_data[1]
+                        self.username = tuple_data[2]
+                        self.password = tuple_data[3]
+                        self.email = tuple_data[4]
+                        if Role.get_by_role_id(self.role_id):
+                            self.is_admin = (Role.get_by_role_id(self.role_id).role_name == 'admin')
+                        else:
+                            self.is_admin = False
                         # salt, pepper and id should not be updated
                         return tuple_data
                     except (Exception, psycopg2.DatabaseError) as error:
@@ -234,13 +261,18 @@ class User(Model, UserMixin):
     
     def check_password(self, password):  
         """
-        Checks if password sent to api is correct.
+        Checks if password sent to database is correct.
         :param password: password to check
         return: True if correct, False if not correct
         """
-        is_peppered = (
-            self.password == self.generate_hashed_password(password, self.pepper))
-        return is_peppered
+        result = creds.check_hashed_password(
+            login_password = password,
+            db_password = self.password,
+            db_salt = self.salt,
+            db_pepper = self.pepper)
+        return result
+    
+
     
     ###================###
     ### flask-login methods ###
@@ -250,7 +282,7 @@ class User(Model, UserMixin):
         Returns the id of the user.
         return: id of the user
         """
-        return self.id
+        return str(self.id)
     
     def is_active(self):
         """
@@ -278,7 +310,71 @@ class User(Model, UserMixin):
             return False
         else:
             return True
-    
+
+#    @login_manager.user_loader
+#    def load_user(user_id: str):
+#        """
+#        Given a user_id (stored in the session), return a User object
+#        or None if not found.
+#        Flask-Login calls this automatically.
+#        """
+#        try:
+#            # if your primary key is int, cast here
+#            user_tuple = User.get_by_id(user_id)
+#        except (ValueError, TypeError):
+#            return None
+#    
+#        if user_tuple is None:
+#            return None
+#    
+#        return User.from_tuple(user_tuple)
+#=== Role check methods
+
+    def is_admin(self) -> bool:
+        """
+        Checks if user is admin.
+        return: True if admin, False if not admin
+        """
+        if self.is_admin:
+            #get role from role_id
+            role = Role.get_by_role_id(self.role_id)
+            if role and role.role_name == 'admin':
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def is_candidate(self) -> bool:
+        """
+        Checks if user is candidate.
+        return: True if candidate, False if not candidate
+        """
+        if self.role_id:
+            role = Role.get_by_role_id(self.role_id)
+            if role and role.role_name == 'candidate':
+                return True
+            else:
+                return False
+        else:
+            return False
+        
+    def is_recruiter(self) -> bool:
+        """
+        Checks if user is recruiter.
+        return: True if recruiter, False if not recruiter
+        """
+        if self.role_id:
+            role = Role.get_by_role_id(self.role_id)
+            if role and role.role_name == 'recruiter':
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+    ###================###
     ### STATIC METHODS ###
     ###================### 
     @staticmethod
@@ -358,7 +454,7 @@ class User(Model, UserMixin):
                 raise DeleteError('User not found')
             
     @staticmethod
-    def select_by_id(id):
+    def get_by_id(id):
         """
         Gets user from database by id and creates user object.
         :param id: id to select user from db
@@ -366,17 +462,16 @@ class User(Model, UserMixin):
         """
         db.connect()
         try:
-            print(SELECT_USER_BY_ID)
-            # db.cursor.execute(SQL_GET_USER_BY_ID, (self.id,))
-            # user = db.cursor.fetchone()
-            # return user
+            db.cursor.execute(SELECT_USER_BY_ID, (id,))
+            user = db.cursor.fetchone()
+            return user
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
 
     @staticmethod
-    def select_by_username(username):
+    def get_by_username(username):
         """
         Gets user from database by username and creates user object.
         :param username: username to select user from db
@@ -395,7 +490,6 @@ class User(Model, UserMixin):
         finally:
             db.close_conn()
 
-    @staticmethod
     def generate_hashed_password(password, salt):
         """
         Generates hashed password.
@@ -410,7 +504,16 @@ class User(Model, UserMixin):
         """
         return: User object from tuple
         """
-        return User(*user_tuple)
+        return User(
+            id = user_tuple[0],
+            role_id = user_tuple[1],
+            username = user_tuple[2],
+            password = user_tuple[3],
+            email = user_tuple[4],
+            b_admin = user_tuple[5],
+            salt = user_tuple[6],
+            pepper = user_tuple[7]
+        )
     
     @staticmethod
     def from_dict(user_dict):
@@ -423,29 +526,21 @@ class User(Model, UserMixin):
     def create_admin(
         admin_username: str = admin_username,
         admin_password: str = admin_password,
-        admin_email: str = admin_email):
-        admin = User(username = admin_username,
-                     password=admin_password,
-                     email=admin_email)
+        admin_email: str = admin_email,
+        admin_b_admin: bool = True):
+        """
+        Creates an admin user object with default or provided credentials.
+        :param admin_username: Username for the admin user.
+        :param admin_password: Password for the admin user.
+        :param admin_email: Email for the admin user.
+        :param admin_b_admin: Boolean flag indicating if the user is an admin.
+        :return: User object representing the admin user.
+        """
+        admin_role_id = Role.get_by_role_name('admin').role_id
+        admin = User(
+            role_id=admin_role_id,
+            username = admin_username,
+            password=admin_password,
+            email=admin_email,
+            b_admin=admin_b_admin)
         return admin    
-
-def main():
-    user = User(
-        username='test_user',
-        password='1A@test_password', 
-        salt=None, 
-        pepper=None,
-        email='test@email.com',
-        id=None)
-    print(user.__dict__)
-    user.insert()
-    print(User.select_all(SELECT_ALL_USERS))
-    user.delete()
-    print(User.select_all(SELECT_ALL_USERS))
-
-
-
-    
-
-if __name__ == '__main__':
-    main()

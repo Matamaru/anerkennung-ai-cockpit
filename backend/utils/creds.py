@@ -231,17 +231,19 @@ class Creds:
 	def check_hashed_password(self, 
 						   login_password: str, 
 						   db_password: str, 
-						   db_salt: str) -> bool:
+						   db_salt: str,
+						   db_pepper: str) -> bool:
 		"""
 		Verifies if the provided password matches the stored hash.
 		:param login_password: str
 		:db_password: str
 		:db_salt: str
+		:db_pepper: str
 		:return : bool
 		"""
-		hashed_login_password = self.generate_hashed_password(password, db_salt) 
-		return hashed_login_password == db_password
-
+		hashed_login_password_salted = self.generate_hashed_password(login_password, db_salt)
+		hashed_login_password_peppered = self.generate_hashed_password(hashed_login_password_salted, db_pepper)
+		return hashed_login_password_peppered == db_password
 #=== main
 
 

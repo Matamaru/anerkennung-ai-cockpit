@@ -47,8 +47,8 @@
         <li class="nav-item"><a class="nav-link" href="#recruiters">Recruiters</a></li>
         <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
         <li class="nav-item ms-lg-2 d-flex gap-2">
-          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</button>
-          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Sign in</button>
+          <a href="{{ url_for('auth.login') }}">Login</a>
+          <a href="{{ url_for('auth.register') }}">Register</a>
         </li>
 
 
@@ -91,171 +91,9 @@
   </div>
 </footer>
 
-<!-- ===================== -->
-<!-- Login Modal (Bootstrap) -->
-<!-- ===================== -->
-<div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true" aria-labelledby="loginModalLabel">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-3 rounded-4 shadow">
-      <div class="modal-header">
-        <h5 class="modal-title" id="loginModalLabel">Sign in</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
-        <form id="loginForm" novalidate>
-          <div class="mb-3">
-            <label class="form-label">Username</label>
-            <input class="form-control" type="text" name="username" required />
-            <div class="invalid-feedback">Please enter your username.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Password</label>
-            <input class="form-control" type="password" name="password" required />
-            <div class="invalid-feedback">Please enter your password.</div>
-          </div>
-
-          <div id="loginError" class="text-danger small mb-2" style="display:none;"></div>
-          <button class="btn btn-primary w-100" type="submit">Sign in</button>
-        </form>
-      </div>
-
-      <div class="modal-footer d-flex justify-content-between">
-        <small class="text-body-secondary">Protected area</small>
-        <a href="#" class="small text-decoration-none" data-bs-dismiss="modal">Cancel</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===================== -->
-<!-- Register Modal -->
-<!-- ===================== -->
-<div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true" aria-labelledby="registerModalLabel">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-3 rounded-4 shadow">
-      <div class="modal-header">
-        <h5 class="modal-title" id="registerModalLabel">Create an Account</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <form id="registerForm" novalidate>
-          <div class="mb-3">
-            <label class="form-label">Full Name</label>
-            <input class="form-control" type="text" name="fullname" required />
-            <div class="invalid-feedback">Please enter your full name.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" required />
-            <div class="invalid-feedback">Please enter a valid email.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Password</label>
-            <input class="form-control" type="password" name="password" minlength="6" required />
-            <div class="invalid-feedback">Password must be at least 12 characters.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Confirm Password</label>
-            <input class="form-control" type="password" name="confirm_password" required />
-            <div class="invalid-feedback">Please confirm your password.</div>
-          </div>
-
-          <div id="registerError" class="text-danger small mb-2" style="display:none;"></div>
-          <button class="btn btn-success w-100" type="submit">Register</button>
-        </form>
-      </div>
-
-      <div class="modal-footer d-flex justify-content-between">
-        <small class="text-body-secondary">Already have an account?</small>
-        <a href="#" class="small text-decoration-none" data-bs-dismiss="modal"
-           data-bs-toggle="modal" data-bs-target="#loginModal">Sign in</a>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-<script>
-  // Client-side validation + AJAX login
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.querySelector("#loginForm");
-    const err = document.querySelector("#loginError");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      // Basic HTML5 validation feedback
-      if (!form.checkValidity()) {
-        form.classList.add('was-validated');
-        return;
-      }
-
-      err.style.display = "none";
-      const data = new FormData(form);
-
-      try {
-        const resp = await fetch("/login", { method: "POST", body: data });
-        const result = await resp.json();
-
-        if (result.success) {
-          window.location.href = result.redirect || "/";
-        } else {
-          err.textContent = result.message || "Login failed.";
-          err.style.display = "block";
-        }
-      } catch (ex) {
-        err.textContent = "Network or server error.";
-        err.style.display = "block";
-      }
-    });
-  });
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const regForm = document.querySelector("#registerForm");
-  const regErr = document.querySelector("#registerError");
-
-  regForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    regForm.classList.add("was-validated");
-    if (!regForm.checkValidity()) return;
-
-    regErr.style.display = "none";
-    const data = new FormData(regForm);
-
-    const password = data.get("password");
-    const confirm = data.get("confirm_password");
-    if (password !== confirm) {
-      regErr.textContent = "Passwords do not match.";
-      regErr.style.display = "block";
-      return;
-    }
-
-    try {
-      const resp = await fetch("/register", { method: "POST", body: data });
-      const result = await resp.json();
-      if (result.success) {
-        // Auto-close register modal, open login modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById("registerModal"));
-        modal.hide();
-        const loginModal = new bootstrap.Modal(document.getElementById("loginModal"));
-        loginModal.show();
-      } else {
-        regErr.textContent = result.message || "Registration failed.";
-        regErr.style.display = "block";
-      }
-    } catch (err) {
-      regErr.textContent = "Network or server error.";
-      regErr.style.display = "block";
-    }
-  });
-});
-</script>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% block body_scripts %}{% endblock %}
