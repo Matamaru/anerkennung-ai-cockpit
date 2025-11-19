@@ -14,10 +14,17 @@
       <p class="text-muted mb-1">
         Welcome,
         <strong>{{ current_user.username }}</strong>
-        {% if current_user.role %}
+        {% if current_user.is_admin() %}
           <span class="badge bg-secondary ms-2 text-uppercase">
-            {{ current_user.role }}
+            Admin
           </span>
+        {% elif current_user.is_recruiter() %}
+          <span class="badge bg-info ms-2 text-uppercase">
+            Recruiter
+          </span>
+        {% elif current_user.is_candidate() %}
+          <span class="badge bg-primary ms-2 text-uppercase">
+            Candidate
         {% endif %}
       </p>
 

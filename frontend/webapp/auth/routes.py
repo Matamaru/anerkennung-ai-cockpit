@@ -7,8 +7,8 @@
 
 #=== Imports
 
-from flask import render_template, request, jsonify, url_for, redirect
-from flask_login import login_user
+from flask import render_template, request, url_for, redirect
+from flask_login import login_user, logout_user, login_required
 from backend.datamodule.models import user
 from frontend.webapp.auth import auth_bp
 from backend.datamodule.models.user import User
@@ -43,6 +43,14 @@ def login_submit():
             print(f"User {user.username} logged in successfully.")
             redirect_url = url_for('main.dashboard')
             return redirect(redirect_url)
+
+# Logout route
+@auth_bp.get("/logout")
+@login_required
+def logout():
+    logged_out = logout_user()
+    print(f'User logged out: {logged_out}')
+    return redirect(url_for("main.index")) 
 
 # --- Registration page
 @auth_bp.get("/register")

@@ -30,7 +30,7 @@ def create_app():
     # === Login Manager setup ===
     login_manager.init_app(app)
     # endpoint name of your login page (GET route)
-    login_manager.login_view = "auth.login_page"
+    login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to access this page."
     login_manager.session_protection = "basic"
 

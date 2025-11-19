@@ -306,10 +306,7 @@ class User(Model, UserMixin):
         """
         This property should return True if this is an anonymous user. (Actual users should return False instead.)
         """
-        if self.id:
-            return False
-        else:
-            return True
+        return self.id is None
 
 #    @login_manager.user_loader
 #    def load_user(user_id: str):
