@@ -12,8 +12,17 @@ import os
 from dotenv import load_dotenv
 from uuid import uuid4
 
+from backend.datamodule.models.country_sql import CREATE_TABLE_COUNTRY
+from backend.datamodule.models.file_type_sql import CREATE_TABLE_FILE_TYPE
+from backend.datamodule.models.status_sql import CREATE_TABLE_STATUS
 from backend.datamodule.models.user_sql import CREATE_TABLE_USERS
 from backend.datamodule.models.role_sql import CREATE_TABLE_ROLES
+from backend.datamodule.models.file_sql import CREATE_TABLE_FILE
+from backend.datamodule.models.document_type_sql import CREATE_TABLE_DOCUMENT_TYPE
+from backend.datamodule.models.document_data_sql import CREATE_TABLE_DOCUMENT_DATA
+from backend.datamodule.models.document_sql import CREATE_TABLE_DOCUMENT
+from backend.datamodule.models.state_sql import CREATE_TABLE_STATES
+from backend.datamodule.models.requirements_sql import CREATE_TABLE_REQUIREMENTS
 
 #=== Defs and classes
 
@@ -49,11 +58,39 @@ class DataBase:
 
 	def create_all_tables(self):
 		"""Create necessary tables in the database."""
+		
+		#=== Users and Roles Tables
 		# Create roles table, as it is needed for users table foreign key
 		self.cursor.execute(CREATE_TABLE_ROLES)
 		# Create users table	
-		self.cursor.execute(CREATE_TABLE_USERS)			
+		self.cursor.execute(CREATE_TABLE_USERS)
+
+		#=== Document Related Tables	
+		# create table file types
+		self.cursor.execute(CREATE_TABLE_FILE_TYPE)
+		# create file table
+		self.cursor.execute(CREATE_TABLE_FILE)
+		# create document_type table
+		self.cursor.execute(CREATE_TABLE_DOCUMENT_TYPE)
+		# create document_data table
+		self.cursor.execute(CREATE_TABLE_DOCUMENT_DATA)
+		# create status table
+		self.cursor.execute(CREATE_TABLE_STATUS)
+		# create document table
+		self.cursor.execute(CREATE_TABLE_DOCUMENT)
+
+		#=== Requirements Related Tables
+		# create countries table
+		self.cursor.execute(CREATE_TABLE_COUNTRY)
+		# create states table
+		self.cursor.execute(CREATE_TABLE_STATES)
+		# create requirements table
+		self.cursor.execute(CREATE_TABLE_REQUIREMENTS)
+		
+
 		# Add more table creations as needed here
+		
+		#=== Final print
 		print('Database tables created if not existing.')
 
 	def execute_query(self, query, values=None):
