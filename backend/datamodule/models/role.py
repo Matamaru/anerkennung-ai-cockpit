@@ -203,6 +203,24 @@ class Role(Model):
         finally:
             db.close_conn()
 
+
+    @staticmethod
+    def get_role_id_by_name(role_name: str):
+        """
+        Get role ID by role name.
+        
+        Args:
+            role_name (str): Name of the role.
+        
+        Returns:
+            str: Role ID corresponding to the role name, or None if not found.
+        """
+        role = Role.get_by_role_name(role_name)
+        if role:
+            return role.role_id
+        else:
+            return None
+
     @staticmethod
     def create_default_roles():
         """

@@ -1,7 +1,6 @@
-{# templates/dashboard.html #}
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Recognition AI Cockpit{% endblock %}
+{% block title %}Dashboard - Anerkennung AI Cockpit{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -12,10 +11,9 @@
       <h1 class="h3 mb-1">Dashboard</h1>
 
       <p class="text-muted mb-1">
-        Welcome,
-        <strong>{{ current_user.username }}</strong>
+        Welcome, <strong>{{ current_user.username }}</strong>
         {% if current_user.is_admin() %}
-          <span class="badge bg-secondary ms-2 text-uppercase">
+          <span class="badge bg-danger ms-2 text-uppercase">
             Admin
           </span>
         {% elif current_user.is_recruiter() %}
@@ -25,6 +23,7 @@
         {% elif current_user.is_candidate() %}
           <span class="badge bg-primary ms-2 text-uppercase">
             Candidate
+          </span>
         {% endif %}
       </p>
 
@@ -34,4 +33,82 @@
     </div>
   </div>
 
-{% endblock %}  
+  <!-- Role-specific Dashboard Content -->
+  <div class="row">
+
+    {% if current_user.is_admin() %}
+      <!-- Admin Options -->
+      <div class="col-md-4 mb-3">
+        <div class="card">
+          <div class="card-header">
+            Admin Panel
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Admin Dashboard</h5>
+            <p class="card-text">Manage users, review system logs, and configure system settings.</p>
+            <a href="{{ url_for('admin.user_management') }}" class="btn btn-danger w-100 mb-2">
+              <i class="bi bi-person-lines-fill me-1"></i> User Management
+            </a>
+            <a href="{{ url_for('admin.requirements_management') }}" class="btn btn-warning w-100 mb-2">
+              <i class="bi bi-file-earmark-text me-1"></i> Requirements Management
+            </a>
+            <a href="{{ url_for('admin.system_logs') }}" class="btn btn-info w-100 mb-2">
+              <i class="bi bi-file-earmark-lock me-1"></i> System Logs
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current_user.is_recruiter() %}
+      <!-- Recruiter Options -->
+      <div class="col-md-4 mb-3">
+        <div class="card">
+          <div class="card-header">
+            Recruiter Tools
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">Recruiter Dashboard</h5>
+            <p class="card-text">Manage candidates, contact other recruiters, or reach out to the admin.</p>
+            <a href="{{ url_for('recruiter.candidate_management') }}" class="btn btn-info w-100 mb-2">
+              <i class="bi bi-person-check me-1"></i> Candidate Management
+            </a>
+            <a href="{{ url_for('recruiter.contact_recruiters') }}" class="btn btn-success w-100 mb-2">
+              <i class="bi bi-chat-left-dots me-1"></i> Contact Recruiters
+            </a>
+            <a href="{{ url_for('recruiter.contact_admin') }}" class="btn btn-dark w-100 mb-2">
+              <i class="bi bi-person-fill-lock me-1"></i> Contact Admin
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if current_user.is_candidate() %}
+      <!-- Candidate Options -->
+      <div class="col-md-4 mb-3">
+        <div class="card">
+          <div class="card-header">
+            Candidate Dashboard
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">My Profile</h5>
+            <p class="card-text">Manage your documents, track your applications, and contact recruiters.</p>
+            <a href="{{ url_for('candidate.document_management') }}" class="btn btn-primary w-100 mb-2">
+              <i class="bi bi-file-earmark-pdf me-1"></i> Documents Management
+            </a>
+            <a href="{{ url_for('candidate.applications_management') }}" class="btn btn-secondary w-100 mb-2">
+              <i class="bi bi-journal-text me-1"></i> Applications Management
+            </a>
+            <a href="{{ url_for('candidate.contact_recruiter') }}" class="btn btn-primary w-100 mb-2">
+              <i class="bi bi-chat-left me-1"></i> Contact Recruiter
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}

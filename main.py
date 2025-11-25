@@ -74,9 +74,9 @@ def main():
 	finally:
 		db.close_conn()
     
-#	# start app
-#	app = create_app()
-#	app.run(debug=True)
+	# start app
+	app = create_app()
+	app.run(debug=True)
 
 
 #=== main program

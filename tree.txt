@@ -10,12 +10,49 @@
 │   │   │   └── user.log
 │   │   ├── models
 │   │   │   ├── basemodel.py
+│   │   │   ├── country.py
+│   │   │   ├── country_sql.py
+│   │   │   ├── document_data.py
+│   │   │   ├── document_data_sql.py
+│   │   │   ├── document.py
+│   │   │   ├── document_sql.py
+│   │   │   ├── document_type.py
+│   │   │   ├── document_type_sql.py
+│   │   │   ├── file.py
+│   │   │   ├── file_sql.py
+│   │   │   ├── file_type.py
+│   │   │   ├── file_type_sql.py
 │   │   │   ├── __init__.py
 │   │   │   ├── __pycache__
 │   │   │   │   ├── basemodel.cpython-312.pyc
+│   │   │   │   ├── country.cpython-312.pyc
+│   │   │   │   ├── country_sql.cpython-312.pyc
+│   │   │   │   ├── document_data_sql.cpython-312.pyc
+│   │   │   │   ├── document_sql.cpython-312.pyc
+│   │   │   │   ├── document_type.cpython-312.pyc
+│   │   │   │   ├── document_type_sql.cpython-312.pyc
+│   │   │   │   ├── file_sql.cpython-312.pyc
+│   │   │   │   ├── file_type.cpython-312.pyc
+│   │   │   │   ├── file_type_sql.cpython-312.pyc
 │   │   │   │   ├── __init__.cpython-312.pyc
+│   │   │   │   ├── requirements.cpython-312.pyc
+│   │   │   │   ├── requirements_sql.cpython-312.pyc
+│   │   │   │   ├── role.cpython-312.pyc
+│   │   │   │   ├── role_sql.cpython-312.pyc
+│   │   │   │   ├── state.cpython-312.pyc
+│   │   │   │   ├── state_sql.cpython-312.pyc
+│   │   │   │   ├── status.cpython-312.pyc
+│   │   │   │   ├── status_sql.cpython-312.pyc
 │   │   │   │   ├── user.cpython-312.pyc
 │   │   │   │   └── user_sql.cpython-312.pyc
+│   │   │   ├── requirements.py
+│   │   │   ├── requirements_sql.py
+│   │   │   ├── role.py
+│   │   │   ├── role_sql.py
+│   │   │   ├── state.py
+│   │   │   ├── state_sql.py
+│   │   │   ├── status.py
+│   │   │   ├── status_sql.py
 │   │   │   ├── user.py
 │   │   │   └── user_sql.py
 │   │   └── __pycache__
@@ -87,7 +124,19 @@
 │   ├── __pycache__
 │   │   └── __init__.cpython-312.pyc
 │   └── webapp
+│       ├── admin
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   │   ├── __init__.cpython-312.pyc
+│       │   │   └── routes.cpython-312.pyc
+│       │   └── routes.py
 │       ├── auth
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   │   ├── __init__.cpython-312.pyc
+│       │   │   └── routes.cpython-312.pyc
+│       │   └── routes.py
+│       ├── candidate
 │       │   ├── __init__.py
 │       │   ├── __pycache__
 │       │   │   ├── __init__.cpython-312.pyc
@@ -103,11 +152,20 @@
 │       │   └── routes.py
 │       ├── __pycache__
 │       │   ├── app.cpython-312.pyc
-│       │   └── __init__.cpython-312.pyc
+│       │   ├── __init__.cpython-312.pyc
+│       │   └── utils.cpython-312.pyc
+│       ├── recruiter
+│       │   ├── __init__.py
+│       │   ├── __pycache__
+│       │   │   ├── __init__.cpython-312.pyc
+│       │   │   └── routes.cpython-312.pyc
+│       │   └── routes.py
 │       ├── static
 │       │   ├── css
 │       │   │   └── styles.css
 │       │   ├── img
+│       │   │   ├── favicon
+│       │   │   ├── favicon.ico
 │       │   │   ├── hero_nurse_cockpit.webp
 │       │   │   ├── logo_anerkennung_ai_cockpit.svg
 │       │   │   ├── logo_simplified_gimp.svg
@@ -119,13 +177,24 @@
 │       │   │   └── success_nurse_certificate.webp
 │       │   └── js
 │       │       └── app.js
-│       └── templates
-│           ├── auth
-│           │   └── login_modal.html
-│           ├── base.html
-│           ├── error.html
-│           ├── index.html
-│           └── results.html
+│       ├── templates
+│       │   ├── admin_requirementsmanagement.html
+│       │   ├── admin_systemlogs.html
+│       │   ├── admin_usermanagement.html
+│       │   ├── base.html
+│       │   ├── candidate_applicationmanagement.html
+│       │   ├── candidate_contactrecruiter.html
+│       │   ├── candidate_documentmanagement.html
+│       │   ├── dashboard.html
+│       │   ├── error.html
+│       │   ├── index.html
+│       │   ├── login.html
+│       │   ├── recruiter_candidatemanagement.html
+│       │   ├── recruiter_contactadmin.html
+│       │   ├── recruiter_contactrecruiters.html
+│       │   ├── register.html
+│       │   └── results.html
+│       └── utils.py
 ├── main.py
 ├── __pycache__
 │   └── config.cpython-312.pyc
@@ -133,4 +202,4 @@
 ├── requirements.txt
 └── tree.txt
 
-30 directories, 104 files
+35 directories, 168 files

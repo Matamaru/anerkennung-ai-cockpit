@@ -37,8 +37,14 @@ def create_app():
     # === Blueprints
     from frontend.webapp.main.routes import main_bp
     from frontend.webapp.auth.routes import auth_bp
+    from frontend.webapp.recruiter.routes import recruiter_bp
+    from frontend.webapp.admin.routes import admin_bp
+    from frontend.webapp.candidate.routes import candidate_bp
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(recruiter_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(candidate_bp)
 
     return app
 

@@ -61,6 +61,7 @@ class User(Model, UserMixin):
             salt = None, 
             pepper = None,
             role_id: str = None,
+            role_name: str = None,
             b_admin: bool = False, 
             id = None):  
         """
@@ -71,6 +72,7 @@ class User(Model, UserMixin):
         :param salt: salt
         :param pepper: pepper
         :param role_id: role_id
+        :param role_name: role_name
         :param b_admin: b_admin
         :param id: id
         """    
@@ -90,6 +92,10 @@ class User(Model, UserMixin):
             self.role_id = role_id
         else:
             self.role_id = None
+        if role_name:
+            self.role_name = role_name
+        else:
+            self.role_name = Role.get_by_role_id(role_id).role_name if role_id else None 
         if b_admin:
             self.b_admin = b_admin
         else:
@@ -98,6 +104,7 @@ class User(Model, UserMixin):
             self.id = id
         else:
             self.id = uuid4().hex
+
 
     def insert(self) -> tuple:
         """
@@ -487,6 +494,23 @@ class User(Model, UserMixin):
         finally:
             db.close_conn()
 
+    @staticmethod
+    def get_all_users():
+        """
+        Gets all users from database.
+        return: list of user objects
+        """
+        db.connect()
+        try:
+            db.cursor.execute(SELECT_ALL_USERS)
+            users = db.cursor.fetchall()
+            return users
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            db.close_conn()
+
+    @staticmethod
     def generate_hashed_password(password, salt):
         """
         Generates hashed password.
