@@ -88,66 +88,66 @@ class State(Model):
             return self.id
         
     @staticmethod
-    def get_by_id(state_id: str):
+    def get_by_id(state_id: str) -> tuple:
         try:
             db.connect()
             # Execute select
             db.cursor.execute(SELECT_STATE_BY_ID, (state_id,))
-            tuple_state = db.cursor.fetchone()
+            state_tuple = db.cursor.fetchone()
 
-            if not tuple_state:
+            if not state_tuple:
                 return None
             
-            return State.from_tuple(tuple_state)
+            return state_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
 
     @staticmethod
-    def get_by_name(name: str):
+    def get_by_name(name: str) -> tuple:
         try:
             db.connect()
             # Execute select
             db.cursor.execute(SELECT_STATE_BY_NAME, (name,))
-            tuple_state = db.cursor.fetchone()
+            state_tuple = db.cursor.fetchone()
 
-            if not tuple_state:
+            if not state_tuple:
                 return None
             
-            return State.from_tuple(tuple_state)
+            return state_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
 
     @staticmethod
-    def get_by_code(code: str):
+    def get_by_code(code: str) -> tuple:
         try:
             db.connect()
             # Execute select
             db.cursor.execute(SELECT_STATE_BY_ABBREVIATION, (code,))
-            tuple_state = db.cursor.fetchone()
+            state_tuple = db.cursor.fetchone()
 
-            if not tuple_state:
+            if not state_tuple:
                 return None
             
-            return State.from_tuple(tuple_state)
+            return state_tuple
+            
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
 
     @staticmethod
-    def get_all():
+    def get_all() -> list:
         try:
             db.connect()
             # Execute select
             db.cursor.execute(SELECT_ALL_STATES)
-            tuples_states = db.cursor.fetchall()
+            states_tuple = db.cursor.fetchall()
 
-            states = [State.from_tuple(t) for t in tuples_states]
-            return states
+            return states_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
@@ -164,13 +164,13 @@ class State(Model):
         )
     
     @staticmethod
-    def from_tuple(data: tuple):
+    def from_tuple(t: tuple):
         return State(
-            id=data[0],
-            country_id=data[1],
-            name=data[2],
-            abbreviation=data[3],
-            description=data[4]
+            id=t[0],
+            country_id=t[1],
+            name=t[2],
+            abbreviation=t[3],
+            description=t[4]
         )
 
     @staticmethod
@@ -200,9 +200,9 @@ class State(Model):
         # ISO 3166-2:DE
         default_states = [
             {
-               "name": "Bayern",
+               "name": "Bavaria",
                "abbreviation": "DE-BY",
-               "description": "Bavaria",
+               "description": "Bayern",
                "country_code": "DE"
            },
            {
@@ -212,9 +212,9 @@ class State(Model):
                "country_code": "DE"
            },
            {
-               "name": "Nordrhein-Westfalen",
+               "name": "North Rhine-Westphalia",
                "abbreviation": "DE-NW",
-               "description": "North Rhine-Westphalia",
+               "description": "Nordrhein-Westfalen",
                "country_code": "DE"
            }
         ]

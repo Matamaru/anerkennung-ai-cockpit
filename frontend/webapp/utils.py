@@ -8,6 +8,7 @@ def admin_required(f):
     """
     Decorator to restrict access to admin users.
     """
+    #TODO recruiters and candidates still have access to admin pages?
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Check if the current user is an admin

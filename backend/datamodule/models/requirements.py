@@ -18,8 +18,16 @@ from backend.datamodule.models.requirements_sql import *
 from backend.datamodule import db
 
 class Requirements(Model):
-    def __init__(self, country_id: str = None, state_id: str = None, name: str = None, description: str = None, optional: bool = False, translation_required: bool = False, fullfilled: bool = False, id: str = None):
-        if self.id:
+    def __init__(self, 
+                 country_id: str = None, 
+                 state_id: str = None, 
+                 name: str = None, 
+                 description: str = None, 
+                 optional: bool = False, 
+                 translation_required: bool = False, 
+                 fullfilled: bool = False, 
+                 id: str = None):
+        if id:
             self.id = id
         else:
             self.id = str(uuid4())
@@ -128,49 +136,48 @@ class Requirements(Model):
             db.connect()
             # Execute select
             db.cursor.execute(SELECT_ALL_REQUIREMENTS)
-            tuples_requirements = db.cursor.fetchall()
+            requirements_tuple = db.cursor.fetchall()
 
-            if not tuples_requirements:
+            if not requirements_tuple:
                 return None
             
-            requirements = [Requirements.from_tuple(t) for t in tuples_requirements]
-            return requirements
+            return requirements_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
 
-    def get_by_optional(self, optional: bool):
+    @staticmethod
+    def get_by_optional(optional: bool):
         try:
             db.connect()
             # Execute select
             sql = SELECT_ALL_REQUIREMENTS + " WHERE optional = %s"
             db.cursor.execute(sql, (optional,))
-            tuples_requirements = db.cursor.fetchall()
+            requirements_tuple = db.cursor.fetchall()
 
-            if not tuples_requirements:
+            if not requirements_tuple:
                 return None
             
-            requirements = [Requirements.from_tuple(t) for t in tuples_requirements]
-            return requirements
+            return requirements_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
 
-    def get_by_fullfilled(self, fullfilled: bool):
+    @staticmethod
+    def get_by_fullfilled(fullfilled: bool):
         try:
             db.connect()
             # Execute select
             sql = SELECT_ALL_REQUIREMENTS + " WHERE fullfilled = %s"
             db.cursor.execute(sql, (fullfilled,))
-            tuples_requirements = db.cursor.fetchall()
+            requirements_tuple = db.cursor.fetchall()
 
-            if not tuples_requirements:
+            if not requirements_tuple:
                 return None
             
-            requirements = [Requirements.from_tuple(t) for t in tuples_requirements]
-            return requirements
+            return requirements_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
@@ -183,17 +190,112 @@ class Requirements(Model):
             # Execute select
             sql = SELECT_ALL_REQUIREMENTS + " WHERE translation_required = %s"
             db.cursor.execute(sql, (translation_required,))
-            tuples_requirements = db.cursor.fetchall()
+            requirements_tuple = db.cursor.fetchall()
 
-            if not tuples_requirements:
+            if not requirements_tuple:
                 return None
             
-            requirements = [Requirements.from_tuple(t) for t in tuples_requirements]
-            return requirements
+            return requirements_tuple
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             db.close_conn()
+
+    @staticmethod
+    def get_by_country_id(country_id: str):
+        try:
+            db.connect()
+            # Execute select
+            sql = SELECT_ALL_REQUIREMENTS + " WHERE country_id = %s"
+            db.cursor.execute(sql, (country_id,))
+            requirements_tuple = db.cursor.fetchall()
+
+            if not requirements_tuple:
+                return None
+            
+            return requirements_tuple
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            db.close_conn()
+
+    @staticmethod
+    def get_by_state_id(state_id: str) -> list:
+        """
+        Get list of requirements objects by state ID.
+        
+        :param state_id: State ID to filter requirements
+        :return: List of requirements objects
+        """
+        try:
+            db.connect()
+            # Execute select
+            sql = SELECT_ALL_REQUIREMENTS + " WHERE state_id = %s"
+            db.cursor.execute(sql, (state_id,))
+            requirements_tuple = db.cursor.fetchall()
+            if not requirements_tuple:
+                return None
+            
+            return requirements_tuple
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            db.close_conn()
+
+    @staticmethod
+    def get_by_country_and_state_id(country_id: str, state_id: str) -> list:
+        try:
+            db.connect()
+            # Execute select
+            sql = SELECT_ALL_REQUIREMENTS + " WHERE country_id = %s AND state_id = %s"
+            db.cursor.execute(sql, (country_id, state_id))
+            requirements_tuple = db.cursor.fetchall()
+
+            if not requirements_tuple:
+                return None
+            
+            return requirements_tuple
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            db.close_conn()
+
+    @staticmethod
+    def get_by_country_name(country_name: str) -> list:
+        try:
+            db.connect()
+            # Execute select
+            sql = SELECT_ALL_REQUIREMENTS + " WHERE country_id = (SELECT id FROM countries WHERE name = %s)"
+            db.cursor.execute(sql, (country_name,))
+            requirements_tuple = db.cursor.fetchall()
+
+            if not requirements_tuple:
+                return None
+            
+            return requirements_tuple
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            db.close_conn()
+
+    @staticmethod
+    def get_by_state_name(state_name: str) -> list:
+        try:
+            db.connect()
+            # Execute select
+            sql = SELECT_ALL_REQUIREMENTS + " WHERE state_id = (SELECT id FROM states WHERE name = %s)"
+            db.cursor.execute(sql, (state_name,))
+            requirements_tuple = db.cursor.fetchall()
+
+            if not requirements_tuple:
+                return None
+            
+            return requirements_tuple
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            db.close_conn()
+
 
     @staticmethod
     def from_tuple(t: tuple):

@@ -1,16 +1,232 @@
 <!--  Application:    Annerkennung AI Cockpit                               -->
-<!--  Module:         templates.admin_dashboard_requirementsmanagement      -->
+<!--  Module:         templates.admin_requirementsmanagement                 -->
 <!--  Author:         Heiko Matamaru, IGS                                   -->
-<!--  Version:        0.0.1                                                 -->
+<!--  Version:        0.0.12                                                 -->
 
 {% extends 'base.html' %}
 
-
-{% block title %} Requirements Management - Admin Dashboard {% endblock %}
-{% block meta_description %} Create and manage requirements for the Anerkennung AI Cockpit. {% endblock %}
-
+{% block title %}Requirements Management - Admin Dashboard{% endblock %}
+{% block meta_description %}Create and manage requirements for the Anerkennung AI Cockpit.{% endblock %}
 
 {% block content %}
+<div class="container py-4">
+  <div class="row">
 
+    <!-- Left: scrollable list of requirements -->
+    <div class="col-md-4 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Requirements</h5>
 
+        <!-- "New" requirement (keeps current filters if present) -->
+        <a
+          href="{{ url_for('admin.requirements_management',
+                           country=filter_country,
+                           state=filter_state) }}"
+          class="btn btn-sm btn-secondary"
+          onclick="event.preventDefault(); window.location = this.href.split('?')[0] + '?country={{ filter_country }}&state={{ filter_state }}';"
+        >
+          New
+        </a>
+      </div>
+
+      <!-- Filter by country / state -->
+      <form class="row g-2 mb-3" method="get" action="{{ url_for('admin.requirements_management') }}">
+        <div class="col-12">
+          <label class="form-label mb-1 small">Country</label>
+          <select name="country" class="form-select form-select-sm">
+            <option value="">All</option>
+            {% for c in countries %}
+              <option value="{{ c }}" {% if c == filter_country %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <!-- State options depend on selected country -->
+        <div class="col-12">
+          <label class="form-label mb-1 small">State</label>
+            <select name="state" class="form-select form-select-sm">
+                <option value="">All</option>
+                {# prefer states for the selected country, otherwise show all states #}
+                {% if filter_country and states_for_country.get(filter_country) %}
+                    {% set state_options = states_for_country.get(filter_country) %}
+                {% else %}
+                    {% set state_options = all_states %}
+                {% endif %}
+                
+                {% for s in state_options %}
+                <option value="{{ s }}" {% if s == filter_state %}selected{% endif %}>
+                    {{ s }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Filter / Reset buttons -->
+        <div class="col-12 d-flex justify-content-between mt-1">
+          <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+          <a href="{{ url_for('admin.requirements_management') }}" class="btn btn-sm btn-outline-secondary">
+            Reset
+          </a>
+        </div>
+      </form>
+
+      <div class="list-group small" style="max-height: 520px; overflow-y: auto;">
+        {% if requirements %}
+          {% for r in requirements %}
+            <a
+              href="{{ url_for('admin.requirements_management',
+                               req_id=r.id,
+                               country=filter_country,
+                               state=filter_state) }}"
+              class="list-group-item list-group-item-action {% if selected_req and selected_req.id == r.id %}active{% endif %}"
+            >
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">{{ r.name }}</div>
+                  <div class="text-muted">
+                    {{ r.country_name }}
+                    {% if r.state_name %}/ {{ r.state_name }}{% endif %}
+                  </div>
+                </div>
+                <div class="text-end">
+                  {% if r.optional %}
+                    <span class="badge bg-info text-dark">Optional</span>
+                  {% endif %}
+                  {% if r.translation_required %}
+                    <span class="badge bg-warning text-dark">Translation</span>
+                  {% endif %}
+                  {% if r.fullfilled %}
+                    <span class="badge bg-success">Fulfilled</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Open</span>
+                  {% endif %}
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        {% else %}
+          <div class="list-group-item text-muted">
+            No requirements found for this filter.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right: detail form -->
+    <div class="col-md-8">
+      {% if form %}
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">
+              {% if selected_req %}Edit Requirement{% else %}New Requirement{% endif %}
+            </span>
+
+            {% if selected_req %}
+              <div class="d-flex gap-1">
+                <!-- Copy -->
+                <form method="post" action="{{ url_for('admin.requirement_copy', req_id=selected_req.id) }}">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    Copy
+                  </button>
+                </form>
+
+                <!-- Delete -->
+                <form method="post" action="{{ url_for('admin.requirement_delete', req_id=selected_req.id) }}"
+                      onsubmit="return confirm('Delete this requirement? This cannot be undone.');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="card-body">
+            <form method="post" action="{{ url_for('admin.requirements_save') }}">
+              {{ form.hidden_tag() }}
+              {% if selected_req %}
+                <input type="hidden" name="req_id" value="{{ selected_req.id }}">
+              {% endif %}
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  {{ form.country_name.label(class="form-label") }}
+                  {{ form.country_name(class="form-control form-control-sm") }}
+                  {% for error in form.country_name.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-md-6">
+                  {{ form.state_name.label(class="form-label") }}
+                  {{ form.state_name(class="form-control form-control-sm") }}
+                  {% for error in form.state_name.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                {{ form.req_name.label(class="form-label") }}
+                {{ form.req_name(class="form-control form-control-sm") }}
+                {% for error in form.req_name.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control form-control-sm") }}
+                {% for error in form.description.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  {{ form.optional.label(class="form-label") }}
+                  {{ form.optional(class="form-select form-select-sm") }}
+                  {% for error in form.optional.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-md-4">
+                  {{ form.translation_required.label(class="form-label") }}
+                  {{ form.translation_required(class="form-select form-select-sm") }}
+                  {% for error in form.translation_required.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="col-md-4">
+                  {{ form.fullfilled.label(class="form-label") }}
+                  {{ form.fullfilled(class="form-select form-select-sm") }}
+                  {% for error in form.fullfilled.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end gap-2 mt-3">
+                <!-- Cancel -> back to list, no selection -->
+                <a href="{{ url_for('admin.requirements_management',
+                                    country=filter_country,
+                                    state=filter_state) }}"
+                   class="btn btn-outline-secondary">
+                  Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-muted">
+          Select a requirement on the left or click <strong>New</strong> to create one.
+        </p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
 {% endblock %}
