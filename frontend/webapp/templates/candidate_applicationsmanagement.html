@@ -1,0 +1,171 @@
+<!--  Application:    Anerkennung AI Cockpit                                -->
+<!--  Module:         templates.candidate_applicationsmanagement            -->
+<!--  Author:         Heiko Matamaru, IGS                                   -->
+<!--  Version:        0.0.2                                                 -->
+
+{% extends 'base.html' %}
+
+{% block title %} Application Management - Candidate Dashboard {% endblock %}
+{% block meta_description %} Manage applications for the Anerkennung AI Cockpit. {% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+
+    <!-- LEFT: Applications list -->
+    <div class="col-md-4 mb-3">
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Your Applications</h5>
+
+        <!-- NEW: same page, right shows empty form -->
+        <a href="{{ url_for('candidate.applicationsmanagement_new') }}"
+           class="btn btn-sm btn-secondary">
+          New
+        </a>
+      </div>
+
+      <div class="list-group" style="height: 70vh; overflow-y: auto;">
+        {% for a in applications %}
+          <a href="{{ url_for('candidate.applicationsmanagement_detail', app_id=a.id) }}"
+             class="list-group-item list-group-item-action
+                    {% if application and application.id == a.id %}active{% endif %}">
+              
+            <div class="d-flex flex-column">
+            
+              <!-- 1st line: Profession (or generic label) -->
+              <span class="fw-semibold">
+                {{ a.profession_name if a.profession_name else 'Application' }}
+              </span>
+            
+              <!-- 2nd line: Country / State • Date -->
+              <small class="{% if application and application.id == a.id %}text-light{% else %}text-muted{% endif %}">
+                {% if a.country_name %}{{ a.country_name }}{% endif %}
+                {% if a.state_name %} / {{ a.state_name }}{% endif %}
+                {% if a.time_created %} • {{ a.time_created }}{% endif %}
+                {# if time_created is a datetime, you can format it instead:
+                   • {{ a.time_created.strftime('%Y-%m-%d') }}
+                #}
+              </small>
+            
+            </div>
+          
+          </a>
+        {% else %}
+          <div class="text-muted fst-italic">
+            No applications yet. Click "New" to create one.
+          </div>
+        {% endfor %}
+        
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Application details -->
+    <div class="col-md-8">
+
+      {% if application or is_new %}
+      <div class="card">
+        <div class="card-header">
+          {% if application %}
+            Application details
+          {% else %}
+            New application
+          {% endif %}
+        </div>
+        <div class="card-body">
+
+          <!-- Save form -->
+          <form method="post" action="{{ url_for('candidate.applicationsmanagement_save') }}">
+            <input type="hidden" name="id" value="{{ application.id if application }}">
+
+            <!-- Profession -->
+            <div class="mb-3">
+              <label class="form-label">Profession</label>
+              <select name="profession_id" class="form-select" required>
+                <option value="">-- please choose --</option>
+                {% for p in professions %}
+                  <option value="{{ p.id }}"
+                    {% if application and application.profession_id == p.id %}selected{% endif %}>
+                    {{ p.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Country -->
+            <div class="mb-3">
+              <label class="form-label">Country</label>
+              <select name="country_id" class="form-select" required>
+                <option value="">-- please choose --</option>
+                {% for c in countries %}
+                  <option value="{{ c.id }}"
+                    {% if application and application.country_id == c.id %}selected{% endif %}>
+                    {{ c.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- State -->
+            <div class="mb-3">
+              <label class="form-label">State / Bundesland</label>
+              <select name="state_id" class="form-select" required>
+                <option value="">-- please choose --</option>
+                {% for s in states %}
+                  <option value="{{ s.id }}"
+                    {% if application and application.state_id == s.id %}selected{% endif %}>
+                    {{ s.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Buttons: Save & Cancel -->
+            <div class="d-flex justify-content-start">
+              <button type="submit" class="btn btn-primary">
+                Save
+              </button>
+
+              <!-- Cancel: go back to page with only list and info message -->
+              <a href="{{ url_for('candidate.applications_management') }}"
+                 class="btn btn-secondary ms-2">
+                Cancel
+              </a>
+
+              {% if application %}
+                <!-- Document Management Button -->
+                <a href="{{ url_for('candidate.document_management', application_id=application.id) }}"
+                   class="btn btn-outline-secondary ms-2">
+                  Documents for this application
+                </a>
+              {% endif %}
+            </div>
+          </form>
+
+          {% if application %}
+           <!-- Delete form (separate, NOT nested) -->
+          <form method="post"
+                action="{{ url_for('candidate.applicationsmanagement_delete', app_id=application.id) }}"
+                class="mt-3">
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('Delete this application?');">
+              Delete
+            </button>
+          </form>
+          {% endif %}
+
+        </div>
+      </div>
+
+      {% else %}
+      <!-- if nothing selected -->
+      <div class="alert alert-info">
+        Select an application on the left or click <strong>New</strong> to create one.
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -12,8 +12,10 @@ import os
 from dotenv import load_dotenv
 from uuid import uuid4
 
+from backend.datamodule.models.application_sql import CREATE_TABLE_APPLICATION
 from backend.datamodule.models.country_sql import CREATE_TABLE_COUNTRY
 from backend.datamodule.models.file_type_sql import CREATE_TABLE_FILE_TYPE
+from backend.datamodule.models.profession_sql import CREATE_TABLE_PROFESSION
 from backend.datamodule.models.status_sql import CREATE_TABLE_STATUS
 from backend.datamodule.models.user_sql import CREATE_TABLE_USERS
 from backend.datamodule.models.role_sql import CREATE_TABLE_ROLES
@@ -50,8 +52,18 @@ class DataBase:
 
 	def drop_all_tables(self):
 		"""Drop all tables in the database."""
-		self.cursor.execute("DROP TABLE IF EXISTS _users;")
-		self.cursor.execute("DROP TABLE IF EXISTS _roles;")
+		self.cursor.execute("DROP TABLE IF EXISTS _users CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _roles CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _file_type CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _file CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _document_type CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _document_data CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _status CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _document CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _country CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _states CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _requirements CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _profession CASCADE;")
 		# Add more table drops as needed here
 		print('Database tables dropped if existing.')
 
@@ -86,12 +98,19 @@ class DataBase:
 		self.cursor.execute(CREATE_TABLE_STATES)
 		# create requirements table
 		self.cursor.execute(CREATE_TABLE_REQUIREMENTS)
-		
+
+		#=== Application Related Tables
+		# create profession table
+		self.cursor.execute(CREATE_TABLE_PROFESSION)	
+		# create application table	
+		self.cursor.execute(CREATE_TABLE_APPLICATION)
 
 		# Add more table creations as needed here
 		
 		#=== Final print
 		print('Database tables created if not existing.')
+
+
 
 	def execute_query(self, query, values=None):
 		"""Execute a given SQL query with optional values."""

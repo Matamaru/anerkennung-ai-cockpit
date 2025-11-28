@@ -6,6 +6,7 @@
 #****************************************************************************
 
 #=== Imports
+from backend.datamodule.models.profession import Profession
 from backend.datamodule.models.requirements import Requirements
 from backend.datamodule.models.country import Country
 from backend.datamodule.models.document_type import DocumentType
@@ -45,9 +46,9 @@ def main():
 			print(f"User {admin.username} is going to be registered ...")
 			admin_tuple = admin.insert()
 			if admin:
-				print(f"User {admin_tuple[2]} registered successfully.")
+				print(f"User {admin_tuple[1]} registered successfully.")
 			else:
-				print(f"User {admin_tuple[2]} could not be registered.")
+				print(f"User {admin_tuple[1]} could not be registered.")
 
 		#=== default document dependencies
 		# default document types
@@ -68,6 +69,9 @@ def main():
 
 		# default requirements
 		Requirements.create_default_requirements()
+
+		# default professions
+		Profession.create_default_professions()
 
 	except Exception as error:
 		print(f"Error during database setup: {error}")

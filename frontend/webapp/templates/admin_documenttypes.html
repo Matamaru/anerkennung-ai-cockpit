@@ -1,0 +1,126 @@
+<!--  Application:    Annerkennung AI Cockpit                               -->
+<!--  Module:         templates.admin_documenttypes                              -->
+<!--  Author:         Heiko Matamaru, IGS                                    -->
+<!--  Version:        0.0.1                                                 -->
+
+{% extends 'base.html' %}
+
+{% block title %}Document Types Management - Admin Dashboard{% endblock %}
+{% block meta_description %}Create and manage document types for the Anerkennung AI Cockpit.{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+
+    <!-- Left: list of document types -->
+    <div class="col-md-4 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Document Types</h5>
+
+        <!-- "New" button: no doc_id param -->
+        <a
+          href="{{ url_for('admin.document_types_management') }}"
+          class="btn btn-sm btn-secondary"
+        >
+          New
+        </a>
+      </div>
+
+      <div class="list-group small" style="max-height: 520px; overflow-y: auto;">
+        {% if document_types %}
+          {% for dt in document_types %}
+            <a
+              href="{{ url_for('admin.document_types_management', doc_id=dt.id) }}"
+              class="list-group-item list-group-item-action {% if selected_doc and selected_doc.id == dt.id %}active{% endif %}"
+            >
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">{{ dt.name }}</div>
+                  {% if dt.description %}
+                    <div class="text-muted text-truncate" style="max-width: 220px;">
+                      {{ dt.description }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        {% else %}
+          <div class="list-group-item text-muted">
+            No document types defined yet.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right: detail form -->
+    <div class="col-md-8">
+      {% if form %}
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">
+              {% if selected_doc %}Edit Document Type{% else %}New Document Type{% endif %}
+            </span>
+
+            {% if selected_doc %}
+              <div class="d-flex gap-1">
+                <!-- Delete -->
+                <form method="post"
+                      action="{{ url_for('admin.document_type_delete', doc_id=selected_doc.id) }}"
+                      onsubmit="return confirm('Delete this document type? This cannot be undone.');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="card-body">
+            <form method="post" action="{{ url_for('admin.document_types_save') }}">
+              {{ form.hidden_tag() }}
+              {% if selected_doc %}
+                <input type="hidden" name="doc_id" value="{{ selected_doc.id }}">
+              {% endif %}
+
+              <div class="mb-3">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control form-control-sm") }}
+                {% for error in form.name.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control form-control-sm", rows="3") }}
+                {% for error in form.description.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <div class="d-flex justify-content-end gap-2 mt-3">
+                <!-- Cancel -> back to list, no selection -->
+                <a href="{{ url_for('admin.document_types_management') }}"
+                   class="btn btn-outline-secondary">
+                  Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-muted">
+          Select a document type on the left or click <strong>New</strong> to create one.
+        </p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+
+{% endblock %}

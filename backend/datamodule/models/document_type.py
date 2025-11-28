@@ -161,10 +161,25 @@ class DocumentType(Model):
         try:
             db.connect()
             for doc_type in default_types:
+                # check if document type already exists
+                try:
+                    db.cursor.execute(SELECT_DOCUMENT_TYPE_BY_NAME, (doc_type[0],))
+                    existing = db.cursor.fetchone()
+                except (Exception, psycopg2.DatabaseError) as error:
+                    existing = None
+                if existing:
+                    print(f"Document type '{doc_type[0]}' already exists – skipping.")
+                    continue  # skip existing types
+                    # insert new document type                      
                 doc_type_id = str(uuid4())
                 values = (doc_type_id, doc_type[0], doc_type[1])
                 # Execute insert
                 db.cursor.execute(INSERT_DOCUMENT_TYPE, values)
+                doc_tuple = db.cursor.fetchone()  # fetch to complete insert
+                if doc_tuple:
+                    print(f"DocumentType '{doc_type[0]}' created.")
+                else:
+                    print(f"Failed to create DocumentType '{doc_type[0]}'.")
             db.conn.commit()
             return True
         except (Exception, psycopg2.DatabaseError) as error:

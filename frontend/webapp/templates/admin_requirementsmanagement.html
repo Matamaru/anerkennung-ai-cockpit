@@ -1,6 +1,6 @@
 <!--  Application:    Annerkennung AI Cockpit                               -->
 <!--  Module:         templates.admin_requirementsmanagement                 -->
-<!--  Author:         Heiko Matamaru, IGS                                   -->
+<!--  Author:         Heiko Matamaru, IGS                                    -->
 <!--  Version:        0.0.12                                                 -->
 
 {% extends 'base.html' %}
@@ -40,25 +40,26 @@
             {% endfor %}
           </select>
         </div>
-        
+
         <!-- State options depend on selected country -->
         <div class="col-12">
           <label class="form-label mb-1 small">State</label>
-            <select name="state" class="form-select form-select-sm">
-                <option value="">All</option>
-                {# prefer states for the selected country, otherwise show all states #}
-                {% if filter_country and states_for_country.get(filter_country) %}
-                    {% set state_options = states_for_country.get(filter_country) %}
-                {% else %}
-                    {% set state_options = all_states %}
-                {% endif %}
-                
-                {% for s in state_options %}
-                <option value="{{ s }}" {% if s == filter_state %}selected{% endif %}>
-                    {{ s }}
-                </option>
-                {% endfor %}
-            </select>
+          <select name="state" class="form-select form-select-sm">
+            <option value="">All</option>
+
+            {# prefer states for the selected country, otherwise show all states #}
+            {% if filter_country and states_for_country.get(filter_country) %}
+              {% set state_options = states_for_country.get(filter_country) %}
+            {% else %}
+              {% set state_options = all_states %}
+            {% endif %}
+
+            {% for s in state_options %}
+              <option value="{{ s }}" {% if s == filter_state %}selected{% endif %}>
+                {{ s }}
+              </option>
+            {% endfor %}
+          </select>
         </div>
 
         <!-- Filter / Reset buttons -->
@@ -123,13 +124,6 @@
 
             {% if selected_req %}
               <div class="d-flex gap-1">
-                <!-- Copy -->
-                <form method="post" action="{{ url_for('admin.requirement_copy', req_id=selected_req.id) }}">
-                  <button type="submit" class="btn btn-sm btn-outline-secondary">
-                    Copy
-                  </button>
-                </form>
-
                 <!-- Delete -->
                 <form method="post" action="{{ url_for('admin.requirement_delete', req_id=selected_req.id) }}"
                       onsubmit="return confirm('Delete this requirement? This cannot be undone.');">
@@ -149,16 +143,51 @@
               {% endif %}
 
               <div class="row mb-3">
+                <!-- Country dropdown + Add Country -->
                 <div class="col-md-6">
                   {{ form.country_name.label(class="form-label") }}
-                  {{ form.country_name(class="form-control form-control-sm") }}
+                  <div class="input-group input-group-sm">
+                    <select name="{{ form.country_name.name }}" class="form-select form-select-sm">
+                      <option value="">Select Country</option>
+                      {% for c in countries %}
+                        <option value="{{ c }}" {% if form.country_name.data == c %}selected{% endif %}>
+                          {{ c }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <a href="{{ url_for('admin.countries_management') }}" class="btn btn-outline-secondary">
+                      Add Country
+                    </a>
+                  </div>
                   {% for error in form.country_name.errors %}
                     <div class="text-danger small">{{ error }}</div>
                   {% endfor %}
                 </div>
+
+                <!-- State dropdown + Add State -->
                 <div class="col-md-6">
                   {{ form.state_name.label(class="form-label") }}
-                  {{ form.state_name(class="form-control form-control-sm") }}
+                  <div class="input-group input-group-sm">
+                    {# Try to restrict to states for the selected country; fall back to all_states #}
+                    {% set current_country = form.country_name.data or filter_country %}
+                    {% if current_country and states_for_country.get(current_country) %}
+                      {% set state_options = states_for_country.get(current_country) %}
+                    {% else %}
+                      {% set state_options = all_states %}
+                    {% endif %}
+
+                    <select name="{{ form.state_name.name }}" class="form-select form-select-sm">
+                      <option value="">Select State</option>
+                      {% for s in state_options %}
+                        <option value="{{ s }}" {% if form.state_name.data == s %}selected{% endif %}>
+                          {{ s }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <a href="{{ url_for('admin.states_management') }}" class="btn btn-outline-secondary">
+                      Add State
+                    </a>
+                  </div>
                   {% for error in form.state_name.errors %}
                     <div class="text-danger small">{{ error }}</div>
                   {% endfor %}

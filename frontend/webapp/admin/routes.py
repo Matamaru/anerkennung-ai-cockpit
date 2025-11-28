@@ -11,9 +11,10 @@ from flask_login import login_required
 from backend.datamodule.models.country import Country
 from backend.datamodule.models.state import State
 from backend.datamodule.models.requirements import Requirements
+from backend.datamodule.models.document_type import DocumentType
 from backend.datamodule.models.role import Role
 from frontend.webapp.admin import admin_bp
-from frontend.webapp.forms import RequirementForm, UserForm
+from frontend.webapp.forms import DocumentTypeForm, RequirementForm, UserForm
 from frontend.webapp.utils import admin_required
 from backend.datamodule.models.user import User
 
@@ -154,7 +155,7 @@ def requirements_management():
     req_tuple = Requirements.get_all()
     requirements = [Requirements.from_tuple(r) for r in req_tuple] if req_tuple else []
 
-    selected_req = Requirements.get_by_id(selected_req_id) if selected_req_id else None
+    selected_req = Requirements.from_tuple(Requirements.get_by_id(selected_req_id)) if selected_req_id else None
 #    print(f"Selected requirement ID: {selected_req_id}, found: {selected_req is not None}")
 
     # --- selected_req -> form data (convert IDs to names just for the form) ---
@@ -267,6 +268,7 @@ def requirements_management():
             if r.state_name == filter_state
         ]
 
+
     requirements = filtered_requirements
 
     return render_template(
@@ -282,12 +284,12 @@ def requirements_management():
     )
 
 
-@admin_bp.route("/requirements/save", methods=["POST"])
+@admin_bp.route("/dashboard/admin/requirements/save", methods=["POST"])
 @login_required
 @admin_required
 def requirements_save():
     form = RequirementForm()
-    req_id = request.form.get("req_id", type=int)
+    req_id = request.form.get("req_id", type=str)
 
     if not form.validate_on_submit():
         flash("Please correct the errors in the form.", "danger")
@@ -301,44 +303,122 @@ def requirements_save():
             args["state"] = form.state_name.data
         return redirect(url_for("admin.requirements_management", **args))
 
-    data = {
-        "country_name": form.country_name.data.strip(),
-        "state_name": (form.state_name.data or "").strip() or None,
-        "req_name": form.req_name.data.strip(),
-        "description": (form.description.data or "").strip() or None,
-        "optional": _str_to_bool(form.optional.data),
-        "translation_required": _str_to_bool(form.translation_required.data),
-        "fullfilled": _str_to_bool(form.fullfilled.data),
-    }
+    values = (
+        Country.from_tuple(Country.get_by_name(form.country_name.data)).id if Country.get_by_name(form.country_name.data) else None,
+        State.from_tuple(State.get_by_name(form.state_name.data)).id if form.state_name.data and State.get_by_name(form.state_name.data) else None,
+        form.req_name.data.strip(),
+        (form.description.data or "").strip() or None,
+        _str_to_bool(form.optional.data),
+        _str_to_bool(form.translation_required.data),
+        _str_to_bool(form.fullfilled.data),
+        req_id
+    )
 
-    if req_id:
-        Requirements.update(req_id, data)
+    req_tuple = Requirements.get_by_id(req_id) if req_id else None
+    if req_tuple:
+        re = Requirements.from_tuple(req_tuple)
+        updated_req_tuple = re.update(values=values)
         flash("Requirement updated.", "success")
         new_id = req_id
     else:
-        new_id = Requirements.create(data)
-        flash("Requirement created.", "success")
+        # chek if cpountru exists, if not create it
+        refreshed_list_of_countries = Country.get_all()
+        country_names = [Country.from_tuple(c).name for c in refreshed_list_of_countries]
+        if form.country_name.data not in country_names:
+            # New country added
+            new_country = Country(
+                id=None,
+                name=form.country_name.data,
+                description=None
+            )
+            new_country.insert()
+
+        # check for state existence if state name provided
+        if form.state_name.data:
+            refreshed_list_of_states = State.get_all()
+            state_names = [State.from_tuple(s).name for s in refreshed_list_of_states]
+            if form.state_name.data not in state_names:
+                # New state added
+                country_tuple = Country.get_by_name(form.country_name.data)
+                country_id = Country.from_tuple(country_tuple).id if country_tuple else None
+                new_state = State(
+                    id=None,
+                    country_id=country_id,
+                    name=form.state_name.data,
+                    abbreviation=None,
+                    description=None
+                )
+                new_state.insert()
+        # create new requirement with country/state IDs
+        new_req = Requirements(
+            id=None,
+            country_id=Country.from_tuple(Country.get_by_name(form.country_name.data)).id if Country.get_by_name(form.country_name.data) else None,
+            state_id=State.from_tuple(State.get_by_name(form.state_name.data)).id if form.state_name.data and State.get_by_name(form.state_name.data) else None,
+            name=form.req_name.data.strip(),
+            description=(form.description.data or "").strip() or None,
+            optional=_str_to_bool(form.optional.data),
+            translation_required=_str_to_bool(form.translation_required.data),
+            fullfilled=_str_to_bool(form.fullfilled.data)
+        )
+        new_req_tuple = new_req.insert()
+        if not new_req_tuple:
+            flash("Error creating new requirement.", "danger")
+            args = {}
+            if req_id:
+                args["req_id"] = req_id
+            if form.country_name.data:
+                args["country"] = form.country_name.data
+            if form.state_name.data:
+                args["state"] = form.state_name.data
+            return redirect(url_for("admin.requirements_management", **args))
+        else:
+            new_req.id = new_req_tuple[0]  # assuming ID is the first element
+            flash("Requirement created.", "success")
+
+        # refresh state_for_country mapping in case new country and / or state was added
 
     return redirect(
         url_for(
             "admin.requirements_management",
-            req_id=new_id,
-            country=data["country_name"],
-            state=data["state_name"] or "",
+            req_id=new_id if req_tuple else new_req.id,
+            country=form.country_name.data or "",
+            state=form.state_name.data   or "",
+            
         )
     )
 
+@admin_bp.route("/dashboard/admin/countries", methods=["GET", "POST"])
+@login_required
+@admin_required
+def countries_management():
+    countries_tuple = Country.get_all()
+    countries = [Country.from_tuple(c) for c in countries_tuple] if countries_tuple else []
+    return render_template("admin_country.html", countries=countries)
 
-@admin_bp.route("/requirements/<req_id>/delete", methods=["POST"])
+@admin_bp.route("/dashboard/admin/states", methods=["GET", "POST"])
+@login_required
+@admin_required
+def states_management():
+    states_tuple = State.get_all()
+    states = [State.from_tuple(s) for s in states_tuple] if states_tuple else []
+    return render_template("admin_state.html", states=states)
+
+
+@admin_bp.route("/dashboard/admin/requirements/<req_id>/delete", methods=["POST"])
 @login_required
 @admin_required
 def requirement_delete(req_id: str):
-    Requirements.delete(req_id)
-    flash("Requirement deleted.", "success")
+    del_req_tuple = Requirements.get_by_id(req_id)
+    if not del_req_tuple:
+        flash("Requirement not found – nothing deleted.", "warning")
+        return redirect(url_for("admin.requirements_management"))
+    else:
+        Requirements.from_tuple(del_req_tuple).delete()
+        flash("Requirement deleted.", "success")
     return redirect(url_for("admin.requirements_management"))
 
 
-@admin_bp.route("/requirements/<req_id>/copy", methods=["POST"])
+@admin_bp.route("/dashboard/admin/requirements/<req_id>/copy", methods=["POST"])
 @login_required
 @admin_required
 def requirement_copy(req_id: str):
@@ -349,6 +429,101 @@ def requirement_copy(req_id: str):
 
     flash("Requirement copied.", "success")
     return redirect(url_for("admin.requirements_management", req_id=new_id))
+
+#============ Document Types Management =========
+@admin_bp.route("/dashboard/admin/document_types", methods=["GET"])
+@login_required
+@admin_required
+def document_types_management():
+    """
+    List all document types (left) and show detail form (right).
+    Optional selected document type: ?doc_id=UUID
+    """
+    selected_doc_id = request.args.get("doc_id")  # UUID string
+
+    # Load all document types for left side
+    dt_rows = DocumentType.get_all()  # you implement this to return tuples
+    document_types = [DocumentType.from_tuple(r) for r in dt_rows] if dt_rows else []
+
+    selected_doc = DocumentType.from_tuple(DocumentType.get_by_id(selected_doc_id)) if selected_doc_id else None
+
+    if selected_doc:
+        form = DocumentTypeForm(
+            name=selected_doc.name,
+            description=selected_doc.description,
+        )
+    else:
+        form = DocumentTypeForm()
+
+    return render_template(
+        "admin_documenttypes.html",
+        document_types=document_types,
+        selected_doc=selected_doc,
+        form=form,
+    )
+
+
+@admin_bp.route("/dashboard/admin/document_types/save", methods=["POST"])
+@login_required
+@admin_required
+def document_types_save():
+    form = DocumentTypeForm()
+    doc_id = request.form.get("doc_id")  # UUID string or None
+
+    if not form.validate_on_submit():
+        flash("Please correct the errors in the form.", "danger")
+        args = {}
+        if doc_id:
+            args["doc_id"] = doc_id
+        return redirect(url_for("admin.document_types_management", **args))
+
+     
+    if doc_id:
+        # update existing document type
+        values = (
+            form.name.data.strip(),
+            (form.description.data or "").strip() or None,
+            doc_id
+        )
+
+        doc_tuple = DocumentType.get_by_id(doc_id)  
+        doc = DocumentType.from_tuple(doc_tuple)
+        doc.update(values=values)
+        flash("Document type updated.", "success")
+        new_id = doc_id
+    else:
+        new_doc_tuple = DocumentType(
+            id=None,
+            name=form.name.data.strip(),
+            description=(form.description.data or "").strip() or None,
+        ).insert()
+        if not new_doc_tuple:
+            flash("Error creating new document type.", "danger")
+            return redirect(url_for("admin.document_types_management"))
+        new_id = new_doc_tuple[0]  
+        flash("Document type created.", "success")
+
+    return redirect(
+        url_for(
+            "admin.document_types_management",
+            doc_id=new_id,
+        )
+    )
+
+
+@admin_bp.route("/dashboard/admin/document_types/<doc_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def document_type_delete(doc_id: str):
+    doc_type_tuple = DocumentType.get_by_id(doc_id)
+    if not doc_type_tuple:
+        flash("Document type not found – nothing deleted.", "warning")
+        return redirect(url_for("admin.document_types_management"))
+    else:   
+        DocumentType.from_tuple(doc_type_tuple).delete()
+        flash("Document type deleted.", "success")
+    return redirect(url_for("admin.document_types_management"))
+
 
 #========= System Administration Routes =========
 # System logs

@@ -107,7 +107,7 @@ class Requirements(Model):
             if not tuple_requirement:
                 return None
             
-            return Requirements.from_tuple(tuple_requirement)
+            return tuple_requirement
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
@@ -124,7 +124,7 @@ class Requirements(Model):
             if not tuple_requirement:
                 return None
             
-            return Requirements.from_tuple(tuple_requirement)
+            return tuple_requirement
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:

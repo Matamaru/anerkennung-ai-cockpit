@@ -45,12 +45,15 @@
           </div>
           <div class="card-body">
             <h5 class="card-title">Admin Dashboard</h5>
-            <p class="card-text">Manage users, review system logs, and configure system settings.</p>
+            <p class="card-text">Manage users, review system logs, and configure requirements for Anerkennung for different countries and states.</p>
             <a href="{{ url_for('admin.user_management') }}" class="btn btn-danger w-100 mb-2">
               <i class="bi bi-person-lines-fill me-1"></i> User Management
             </a>
             <a href="{{ url_for('admin.requirements_management') }}" class="btn btn-warning w-100 mb-2">
               <i class="bi bi-file-earmark-text me-1"></i> Requirements Management
+            </a>
+              <a href="{{ url_for('admin.document_types_management') }}" class="btn btn-secondary w-100 mb-2">
+                <i class="bi bi-documents me-1"></i> Document Types Management
             </a>
             <a href="{{ url_for('admin.system_logs') }}" class="btn btn-info w-100 mb-2">
               <i class="bi bi-file-earmark-lock me-1"></i> System Logs
