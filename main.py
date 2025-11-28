@@ -78,12 +78,6 @@ def main():
 	finally:
 		db.close_conn()
     
-	# start app
-	app = create_app()
-	app.run(debug=True)
-
-
 #=== main program
 
-if __name__ == "__main__":
-    main()
+main()
