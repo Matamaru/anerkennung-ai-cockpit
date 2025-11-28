@@ -15,7 +15,7 @@ lazy_loader==0.4
 MarkupSafe==3.0.3
 matplotlib==3.10.7
 networkx==3.5
-numpy>=2.3
+numpy
 opencv-python==4.12.0.88
 packaging==25.0
 pandas==2.3.3
