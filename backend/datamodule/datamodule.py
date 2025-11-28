@@ -12,6 +12,7 @@ import os
 from dotenv import load_dotenv
 from uuid import uuid4
 
+from backend.datamodule.models.app_docs_sql import CREATE_TABLE_APP_DOCS
 from backend.datamodule.models.application_sql import CREATE_TABLE_APPLICATION
 from backend.datamodule.models.country_sql import CREATE_TABLE_COUNTRY
 from backend.datamodule.models.file_type_sql import CREATE_TABLE_FILE_TYPE
@@ -104,6 +105,8 @@ class DataBase:
 		self.cursor.execute(CREATE_TABLE_PROFESSION)	
 		# create application table	
 		self.cursor.execute(CREATE_TABLE_APPLICATION)
+		# create app_docs table
+		self.cursor.execute(CREATE_TABLE_APP_DOCS)
 
 		# Add more table creations as needed here
 		
