@@ -8,8 +8,9 @@
 
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
-# load file .env
+# load .env file
 load_dotenv()
 
 #=== defs and classes
@@ -18,12 +19,22 @@ def config_db():
     # db dict
     db = {}
 
-    # Call variables and add to dict db
-    db['host'] = os.getenv("DB_HOST")
-    db['port'] = os.getenv("DB_PORT")
-    db['dbname'] = os.getenv("DB_NAME")
-    db['user'] = os.getenv("DB_USER")
-    db['password'] = os.getenv("DB_PASSWORD")
+    # Get the DATABASE_URL from the environment variable (set by Heroku)
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    
+    # If DATABASE_URL is not set, raise an error
+    if DATABASE_URL is None:
+        raise ValueError("DATABASE_URL environment variable not set")
+    
+    # Parse the DATABASE_URL
+    result = urlparse(DATABASE_URL)
+    
+    # Extract connection details from the parsed URL
+    db['host'] = result.hostname
+    db['port'] = result.port
+    db['dbname'] = result.path[1:]  # Remove leading '/' from path
+    db['user'] = result.username
+    db['password'] = result.password
 
     return db
 

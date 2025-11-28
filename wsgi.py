@@ -1,3 +1,3 @@
-from main import create_app
+from frontend.webapp import create_app
 
 app = create_app()

@@ -27,3 +27,11 @@ class StrictConfig(BaseConfig):
         "image/png",
     }
     SUPPORTED_STATES = os.getenv("SUPPORTED_STATES", "BE,BY,NRW").split(",")
+
+
+class HerokuConfig():
+    SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "prod-secret")
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH_MB", "16")) * 1024 * 1024
+    MAX_FILES_PER_UPLOAD = int(os.getenv("MAX_FILES_PER_UPLOAD", "20"))
+    DATABASE_URL = os.getenv("DATABASE_URL")
