@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS _applications (
     country_id VARCHAR(36) NOT NULL,
     state_id VARCHAR(36) NOT NULL,
     time_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES _users(id),
+    FOREIGN KEY (user_id) REFERENCES _users(user_id),
     FOREIGN KEY (profession_id) REFERENCES _professions(id),
     FOREIGN KEY (country_id) REFERENCES _countries(id),
     FOREIGN KEY (state_id) REFERENCES _states(id)
