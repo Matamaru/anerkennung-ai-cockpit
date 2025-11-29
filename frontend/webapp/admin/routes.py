@@ -144,49 +144,48 @@ def _str_to_bool(value: str) -> bool:
 def requirements_management():
     """
     Show list of requirements (left) and detail form (right).
-    Optional filters: ?country=...&state=...
+    Optional filters: ?country=...&state=...&profession=...
     Optional selected requirement: ?req_id=123
     """
-    # get filters and selected requirement from form args
+    # Get filters and selected requirement from form args
     filter_country = request.args.get("country") or ""
     filter_state = request.args.get("state") or ""
+    filter_profession = request.args.get("profession") or ""  # New profession filter
     selected_req_id = request.args.get("req_id", type=str)
 
-    # Load list for left side
+    # Load list for left side (requirements)
     req_tuple = Requirements.get_all()
     requirements = [Requirements.from_tuple(r) for r in req_tuple] if req_tuple else []
+    print(f"Total requirements loaded: {len(requirements)}")
 
     selected_req = Requirements.from_tuple(Requirements.get_by_id(selected_req_id)) if selected_req_id else None
-#    print(f"Selected requirement ID: {selected_req_id}, found: {selected_req is not None}")
 
     # --- selected_req -> form data (convert IDs to names just for the form) ---
     if selected_req and selected_req.country_id:
         country_tuple = Country.get_by_id(selected_req.country_id)
-        if country_tuple:
-            country = Country.from_tuple(country_tuple)
-            selected_country_name = country.name
-        else:
-            selected_country_name = ""
+        selected_country_name = country_tuple[1] if country_tuple else ""
     else:
         selected_country_name = ""
 
     if selected_req and selected_req.state_id:
         state_tuple = State.get_by_id(selected_req.state_id)
-        if state_tuple:
-            state = State.from_tuple(state_tuple)
-            selected_state_name = state.name
-        else:
-            selected_state_name = ""
+        selected_state_name = state_tuple[1] if state_tuple else ""
     else:
         selected_state_name = ""
 
-    #TODO : handle profession_id for further professions
+    if selected_req and selected_req.profession_id:
+        profession_tuple = Profession.get_by_id(selected_req.profession_id)
+        selected_profession_name = profession_tuple[1] if profession_tuple else ""
+    else:
+        selected_profession_name = ""
 
+    # Create the form object for the selected requirement
     if selected_req:
         form = RequirementForm(
+            profession_name=selected_profession_name,
             country_name=selected_country_name,
             state_name=selected_state_name,
-            req_name=selected_req.name,  # or selected_req.req_name, depending on your model
+            req_name=selected_req.name,
             description=selected_req.description,
             optional="true" if selected_req.optional else "false",
             translation_required="true" if selected_req.translation_required else "false",
@@ -198,13 +197,18 @@ def requirements_management():
             form.country_name.data = filter_country
         if filter_state:
             form.state_name.data = filter_state
+        if filter_profession:
+            form.profession_name.data = filter_profession  # Set the profession filter if available
 
     # ========= Build country/state name caches from ALL requirements =========
     all_requirements = requirements  # keep original list
 
     country_name_by_id: dict[str, str] = {}
+    print(f"country_name_by_id: {country_name_by_id}")
     state_name_by_id: dict[str, str] = {}
+    print(f"state_name_by_id: {state_name_by_id}")
     profession_name_by_id: dict[str, str] = {}
+    print(f"profession_name_by_id: {profession_name_by_id}")
 
     country_ids = set()
     state_ids = set()
@@ -218,34 +222,25 @@ def requirements_management():
         if req.profession_id:
             profession_ids.add(req.profession_id)
 
-    # resolve countries
+    # Resolve countries
     for cid in country_ids:
         ct = Country.get_by_id(cid)
-        if not ct:
-            continue
-        c = Country.from_tuple(ct)
-        country_name_by_id[cid] = c.name
+        country_name_by_id[cid] = ct[1] if ct else ""
 
-    # resolve states
+    # Resolve states
     for sid in state_ids:
         st = State.get_by_id(sid)
-        if not st:
-            continue
-        s = State.from_tuple(st)
-        state_name_by_id[sid] = s.name
+        state_name_by_id[sid] = st[1] if st else ""
 
-    # resolve professions
+    # Resolve professions
     for pid in profession_ids:
         pt = Profession.get_by_id(pid)
-        if not pt:
-            continue
-        p = Profession.from_tuple(pt)
-        profession_name_by_id[pid] = p.name
+        profession_name_by_id[pid] = pt[1] if pt else ""
 
-    # list of country names for dropdown
+    # List of country names for dropdown
     countries = sorted(set(country_name_by_id.values()))
 
-    # map: country_name -> set of state_names (no duplicates)
+    # Map: country_name -> set of state_names (no duplicates)
     states_for_country: dict[str, set[str]] = {}
     for req in all_requirements:
         cid = req.country_id
@@ -256,13 +251,12 @@ def requirements_management():
             continue
         states_for_country.setdefault(c_name, set()).add(s_name)
 
-    # convert sets to sorted lists
+    # Convert sets to sorted lists
     states_for_country = {
         c: sorted(list(s_set)) for c, s_set in states_for_country.items()
     }
 
-    # map all countries and states to professions
-    # (not used in template yet)
+    # Map all countries and states to professions (for filtering purposes)
     professions_for_country_state: dict[tuple[str, str], set[str]] = {}
     for req in all_requirements:
         cid = req.country_id
@@ -275,13 +269,14 @@ def requirements_management():
             continue
         professions_for_country_state.setdefault((c_name, s_name), set()).add(p_name)
 
-    # fallback: ALL states (used if something with mapping goes wrong)
+    # Fallback: ALL states (used if something with mapping goes wrong)
     all_states = sorted(set(state_name_by_id.values()))
 
-    # annotate each requirement with country_name/state_name for template
+    # Annotate each requirement with country_name/state_name/profession_name for template
     for req in all_requirements:
         req.country_name = country_name_by_id.get(req.country_id, "")
         req.state_name = state_name_by_id.get(req.state_id, "")
+        req.profession_name = profession_name_by_id.get(req.profession_id, "")
 
     # ========= Apply filters by *names* =========
     filtered_requirements = all_requirements
@@ -298,8 +293,16 @@ def requirements_management():
             if r.state_name == filter_state
         ]
 
+    if filter_profession:
+        filtered_requirements = [
+            r for r in filtered_requirements
+            if r.profession_name == filter_profession
+        ]
 
     requirements = filtered_requirements
+
+    # Fetch all professions for the dropdown
+    professions = sorted(list(profession_name_by_id.values()))
 
     return render_template(
         "admin_requirementsmanagement.html",
@@ -308,10 +311,13 @@ def requirements_management():
         form=form,
         filter_country=filter_country,
         filter_state=filter_state,
+        filter_profession=filter_profession,  # Pass the selected profession filter
         countries=countries,
         states_for_country=states_for_country,
         all_states=all_states,
+        professions=professions,  # List of professions for the dropdown
     )
+
 
 
 @admin_bp.route("/dashboard/admin/requirements/save", methods=["POST"])

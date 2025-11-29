@@ -358,34 +358,8 @@ class Requirements(Model):
                     {"name": "LanguageCertificate", "description": "German language certificate (B2 for nursing).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
                     {"name": "ProofOfBerlinResponsibility", "description": "Proof that Berlin is the responsible state (residence, employer, or job offer).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
                 ]
-            },
-            "Doctor": {
-                "DE-BY": [
-                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
-                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "MedicalDegree", "description": "Medical diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
-                    {"name": "LanguageCertificate", "description": "German language certificate (C1 or higher).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
-                ],
-                "DE-NW": [
-                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
-                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "MedicalDegree", "description": "Medical diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
-                    {"name": "LanguageCertificate", "description": "German language certificate (C1 or higher).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
-                ],
-                "DE-BE": [
-                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
-                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "MedicalDegree", "description": "Medical diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
-                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
-                    {"name": "LanguageCertificate", "description": "German language certificate (C1 or higher).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
-                ]
+            }        
             }
-        }
     
         try:
             db.connect()

@@ -1,8 +1,3 @@
-<!--  Application:    Annerkennung AI Cockpit                               -->
-<!--  Module:         templates.admin_requirementsmanagement                 -->
-<!--  Author:         Heiko Matamaru, IGS                                    -->
-<!--  Version:        0.0.12                                                 -->
-
 {% extends 'base.html' %}
 
 {% block title %}Requirements Management - Admin Dashboard{% endblock %}
@@ -21,15 +16,16 @@
         <a
           href="{{ url_for('admin.requirements_management',
                            country=filter_country,
-                           state=filter_state) }}"
+                           state=filter_state,
+                           profession=filter_profession) }}"
           class="btn btn-sm btn-secondary"
-          onclick="event.preventDefault(); window.location = this.href.split('?')[0] + '?country={{ filter_country }}&state={{ filter_state }}';"
+          onclick="event.preventDefault(); window.location = this.href.split('?')[0] + '?country={{ filter_country }}&state={{ filter_state }}&profession={{ filter_profession }}';"
         >
           New
         </a>
       </div>
 
-      <!-- Filter by country / state -->
+      <!-- Filter by country / state / profession -->
       <form class="row g-2 mb-3" method="get" action="{{ url_for('admin.requirements_management') }}">
         <div class="col-12">
           <label class="form-label mb-1 small">Country</label>
@@ -46,17 +42,27 @@
           <label class="form-label mb-1 small">State</label>
           <select name="state" class="form-select form-select-sm">
             <option value="">All</option>
-
-            {# prefer states for the selected country, otherwise show all states #}
             {% if filter_country and states_for_country.get(filter_country) %}
               {% set state_options = states_for_country.get(filter_country) %}
             {% else %}
               {% set state_options = all_states %}
             {% endif %}
-
             {% for s in state_options %}
               <option value="{{ s }}" {% if s == filter_state %}selected{% endif %}>
                 {{ s }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Profession filter dropdown -->
+        <div class="col-12">
+          <label class="form-label mb-1 small">Profession</label>
+          <select name="profession" class="form-select form-select-sm">
+            <option value="">All</option>
+            {% for profession in professions %}
+              <option value="{{ profession }}" {% if profession == filter_profession %}selected{% endif %}>
+                {{ profession }}
               </option>
             {% endfor %}
           </select>
@@ -78,7 +84,8 @@
               href="{{ url_for('admin.requirements_management',
                                req_id=r.id,
                                country=filter_country,
-                               state=filter_state) }}"
+                               state=filter_state,
+                               profession=filter_profession) }}"
               class="list-group-item list-group-item-action {% if selected_req and selected_req.id == r.id %}active{% endif %}"
             >
               <div class="d-flex justify-content-between align-items-start">
@@ -87,6 +94,7 @@
                   <div class="text-muted">
                     {{ r.country_name }}
                     {% if r.state_name %}/ {{ r.state_name }}{% endif %}
+                    {% if r.profession_name %}/ {{ r.profession_name }}{% endif %}
                   </div>
                 </div>
                 <div class="text-end">
@@ -143,7 +151,7 @@
               {% endif %}
 
               <div class="row mb-3">
-                <!-- Country dropdown + Add Country -->
+                <!-- Country dropdown -->
                 <div class="col-md-6">
                   {{ form.country_name.label(class="form-label") }}
                   <div class="input-group input-group-sm">
@@ -164,11 +172,10 @@
                   {% endfor %}
                 </div>
 
-                <!-- State dropdown + Add State -->
+                <!-- State dropdown -->
                 <div class="col-md-6">
                   {{ form.state_name.label(class="form-label") }}
                   <div class="input-group input-group-sm">
-                    {# Try to restrict to states for the selected country; fall back to all_states #}
                     {% set current_country = form.country_name.data or filter_country %}
                     {% if current_country and states_for_country.get(current_country) %}
                       {% set state_options = states_for_country.get(current_country) %}
@@ -194,7 +201,21 @@
                 </div>
               </div>
 
+              <!-- Profession dropdown -->
               <div class="mb-3">
+                {{ form.profession_name.label(class="form-label") }}
+                <select name="{{ form.profession_name.name }}" class="form-select form-select-sm">
+                  <option value="">Select Profession</option>
+                  {% for profession in professions %}
+                    <option value="{{ profession }}" {% if form.profession_name.data == profession %}selected{% endif %}>
+                      {{ profession }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Requirement name -->
+              <div class="mb-4">
                 {{ form.req_name.label(class="form-label") }}
                 {{ form.req_name(class="form-control form-control-sm") }}
                 {% for error in form.req_name.errors %}
@@ -202,7 +223,8 @@
                 {% endfor %}
               </div>
 
-              <div class="mb-3">
+              <!-- Requirement description -->
+              <div class="mb-4">
                 {{ form.description.label(class="form-label") }}
                 {{ form.description(class="form-control form-control-sm") }}
                 {% for error in form.description.errors %}
@@ -210,22 +232,24 @@
                 {% endfor %}
               </div>
 
-              <div class="row mb-3">
-                <div class="col-md-4">
+
+              <!-- Checkboxes for optional, translation_required, fullfilled -->
+              <div class="row mb-4">
+                <div class="col-md-5">
                   {{ form.optional.label(class="form-label") }}
                   {{ form.optional(class="form-select form-select-sm") }}
                   {% for error in form.optional.errors %}
                     <div class="text-danger small">{{ error }}</div>
                   {% endfor %}
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-5">
                   {{ form.translation_required.label(class="form-label") }}
                   {{ form.translation_required(class="form-select form-select-sm") }}
                   {% for error in form.translation_required.errors %}
                     <div class="text-danger small">{{ error }}</div>
                   {% endfor %}
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-5">
                   {{ form.fullfilled.label(class="form-label") }}
                   {{ form.fullfilled(class="form-select form-select-sm") }}
                   {% for error in form.fullfilled.errors %}
@@ -234,7 +258,8 @@
                 </div>
               </div>
 
-              <div class="d-flex justify-content-end gap-2 mt-3">
+              <!-- Buttons Cancel and Save -->
+              <div class="d-flex justify-content-end gap-3 mt-3">
                 <!-- Cancel -> back to list, no selection -->
                 <a href="{{ url_for('admin.requirements_management',
                                     country=filter_country,
@@ -248,14 +273,14 @@
               </div>
             </form>
           </div>
+          
         </div>
       {% else %}
-        <p class="text-muted">
-          Select a requirement on the left or click <strong>New</strong> to create one.
-        </p>
+        <div class="alert alert-info">
+          Select a requirement from the list or create a new one to view or edit its details.
+        </div>
       {% endif %}
-    </div>
-
+    </div>    
   </div>
 </div>
 {% endblock %}
