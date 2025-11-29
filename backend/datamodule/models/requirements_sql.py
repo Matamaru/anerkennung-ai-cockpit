@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS _requirements (
     optional BOOLEAN DEFAULT FALSE,
     translation_required BOOLEAN DEFAULT FALSE,
     fullfilled BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (profession_id) REFERENCES _profession(id),
+    FOREIGN KEY (profession_id) REFERENCES _professions(id),
     FOREIGN KEY (country_id) REFERENCES _country(id),
     FOREIGN KEY (state_id) REFERENCES _states(id)
 );
