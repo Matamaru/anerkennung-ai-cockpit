@@ -84,34 +84,107 @@ def get_documents_for_application(application_id) -> list[Document]:
         db.close_conn()
 
 
+def get_requirements_for_application(application_id) -> list[dict]:
+    """Fetch all requirements linked to a given application ID."""
+    query = """
+    SELECT r.id, r.name, r.description
+    FROM _requirements r
+    JOIN _app_requirements ar ON r.id = ar.requirements_id
+    WHERE ar.application_id = %s
+    """
+    try:
+        db.connect()
+        db.cursor.execute(query, (application_id,))
+        req_tuples = db.cursor.fetchall()
+        requirements = []
+        for rt in req_tuples:
+            requirements.append({
+                'id': rt[0],
+                'name': rt[1],
+                'description': rt[2]
+            })
+        print(f"Fetched {len(requirements)} requirements for application {application_id}")
+        return requirements
+    except Exception as e:
+        print(f"Error fetching requirements for application {application_id}: {e}")
+        return []
+    finally:
+        db.close_conn()
+
+
+def get_document_details(document_id) -> Document:
+    """Fetch detailed information for a specific document by its ID."""
+    query = """
+    SELECT 
+        d.id AS document_id,
+        d.file_id,
+        dt.name AS document_type_name,
+        f.filename,
+        f.filepath,
+        doc_data.ocr_full_text,
+        d.last_modified,
+        d.status_id
+    FROM _documents d
+    JOIN _document_types dt ON d.document_type_id = dt.id
+    JOIN _files f ON d.file_id = f.id
+    JOIN _document_datas doc_data ON d.document_data_id = doc_data.id
+    WHERE d.id = %s
+    """
+    try:
+        db.connect()
+        db.cursor.execute(query, (document_id,))
+        doc_tuple = db.cursor.fetchone()
+        if doc_tuple:
+            print(f"Fetched details for document {document_id}")
+            return Document.from_tuple(doc_tuple)
+        else:
+            print(f"No details found for document {document_id}")
+            return None
+    except Exception as e:
+        print(f"Error fetching details for document {document_id}: {e}")
+        return None
+    finally:
+        db.close_conn()
+
 #=== Routes
+
+#======= Document Management Routes  =======
 
 @login_required
 @candidate_required
 @candidate_bp.route("/dashboard/candidate/documentmanagement")
 def document_management():
-    user_id = current_user.id
-    selected_app_id = request.args.get("application_id")  # The selected application ID from the URL
+    # Get the application_id from the URL or session
+    application_id = request.args.get('application_id')
 
-    # Get all applications for the user
-    app_tuple = Application.get_by_user_id(user_id)
-    applications = [Application.from_tuple(a) for a in app_tuple] if app_tuple else []
+    if not application_id:
+        return redirect(url_for('candidate.applications_management'))  # If no application selected, redirect to applications page
 
-    if selected_app_id:
-        # Find the selected application and attach its documents
-        for app in applications:
-            if app.id == selected_app_id:
-                # Get the documents for the selected application
-                app.documents = get_documents_for_application(selected_app_id)
-                break
+    # Get requirements for the selected application
+    requirements = get_requirements_for_application(application_id)
 
-    # Render the template with applications and selected documents
+    # Get documents associated with the selected application
+    documents = get_documents_for_application(application_id)
+
     return render_template(
         "candidate_documentmanagement.html",
-        applications=applications,
-        selected_application_id=selected_app_id,  # Pass the selected application ID to the template
+        requirements=requirements,
+        documents=documents,
+        application_id=application_id  # Pass the application_id to the template
     )
 
+
+@login_required
+@candidate_required
+@candidate_bp.route("/dashboard/candidate/documentmanagement/details/<document_id>")
+def document_details(document_id):
+    # Get the details of the selected document
+    document = get_document_details(document_id)
+    return render_template("candidate_documentdetails.html", document=document)
+
+
+
+#======= Application Management Routes  =======
 
 @login_required
 @candidate_required
