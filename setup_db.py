@@ -35,7 +35,8 @@ try:
 
  	# create admin user if not existing
 	admin = User.create_admin()
-#	print(admin.to_json())
+	
+	print(admin.to_json())
 	is_user, user  = User.username_in_db(admin.username)
 	if is_user:
 		print(f"User {admin.username} already registered.")
