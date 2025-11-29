@@ -179,6 +179,8 @@ def requirements_management():
     else:
         selected_state_name = ""
 
+    #TODO : handle profession_id similarly if needed
+
     if selected_req:
         form = RequirementForm(
             country_name=selected_country_name,

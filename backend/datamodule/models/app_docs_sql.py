@@ -10,7 +10,10 @@ CREATE TABLE IF NOT EXISTS _app_docs (
     id varchar(36) PRIMARY KEY,
     application_id varchar(36) NOT NULL,
     document_id varchar(36) NOT NULL,
-    requirements_id varchar(36) NOT NULL
+    requirements_id varchar(36) NOT NULL,
+    FOREIGN KEY (application_id) REFERENCES _applications(id),
+    FOREIGN KEY (document_id) REFERENCES _documents(id),
+    FOREIGN KEY (requirements_id) REFERENCES _requirements(id)
 );
 """
 
