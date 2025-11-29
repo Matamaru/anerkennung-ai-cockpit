@@ -8,12 +8,14 @@
 #=== Imports
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
+from backend.datamodule.models.document import Document
 from frontend.webapp.candidate import candidate_bp
 from frontend.webapp.utils import candidate_required
 from backend.datamodule.models.profession import Profession
 from backend.datamodule.models.country import Country
 from backend.datamodule.models.state import State 
 from backend.datamodule.models.application import Application
+from backend.datamodule import db
 
 
 #=== helpers
@@ -44,6 +46,43 @@ def _attach_display_data(applications, professions, countries, states):
 
     return applications
 
+def get_documents_for_application(application_id) -> list[Document]:
+    """Fetch all documents linked to a given application ID."""
+    query = """
+    SELECT 
+        ad.id AS app_doc_id,
+        ad.application_id,
+        d.id AS document_id,
+        d.file_id,
+        dt.name AS document_type_name,
+        f.filename,
+        f.filepath,
+        doc_data.ocr_full_text,
+        ad.status_id,
+        ad.requirements_id
+    FROM _app_docs ad
+    JOIN _documents d ON ad.document_id = d.id
+    JOIN _document_types dt ON d.document_type_id = dt.id
+    JOIN _files f ON d.file_id = f.id
+    JOIN _document_datas doc_data ON d.document_data_id = doc_data.id
+    WHERE ad.application_id = %s
+    """
+    try:
+        db.connect()
+        db.cursor.execute(query, (application_id,))
+        doc_tuples = db.cursor.fetchall()
+        if doc_tuples:
+            print(f"Fetched {len(doc_tuples)} documents for application {application_id}")
+            return [Document.from_tuple(dt) for dt in doc_tuples]
+        else:
+            print(f"No documents found for application {application_id}")
+            return []
+    except Exception as e:
+        print(f"Error fetching documents for application {application_id}: {e}")
+        return []
+    finally:
+        db.close_conn()
+
 
 #=== Routes
 
@@ -52,15 +91,25 @@ def _attach_display_data(applications, professions, countries, states):
 @candidate_bp.route("/dashboard/candidate/documentmanagement")
 def document_management():
     user_id = current_user.id
-    selected_app_id = request.args.get("application_id")
+    selected_app_id = request.args.get("application_id")  # The selected application ID from the URL
 
+    # Get all applications for the user
     app_tuple = Application.get_by_user_id(user_id)
     applications = [Application.from_tuple(a) for a in app_tuple] if app_tuple else []
 
+    if selected_app_id:
+        # Find the selected application and attach its documents
+        for app in applications:
+            if app.id == selected_app_id:
+                # Get the documents for the selected application
+                app.documents = get_documents_for_application(selected_app_id)
+                break
+
+    # Render the template with applications and selected documents
     return render_template(
         "candidate_documentmanagement.html",
         applications=applications,
-        selected_application_id=selected_app_id,
+        selected_application_id=selected_app_id,  # Pass the selected application ID to the template
     )
 
 
