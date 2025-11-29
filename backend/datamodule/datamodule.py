@@ -67,7 +67,7 @@ class DataBase:
 		self.cursor.execute("DROP TABLE IF EXISTS _profession CASCADE;")
 		self.cursor.execute("DROP TABLE IF EXISTS _application CASCADE;")
 		self.cursor.execute("DROP TABLE IF EXISTS _app_docs CASCADE;")
-		
+
 		# Add more table drops as needed here
 		print('Database tables dropped if existing.')
 
@@ -100,12 +100,12 @@ class DataBase:
 		self.cursor.execute(CREATE_TABLE_COUNTRY)
 		# create states table
 		self.cursor.execute(CREATE_TABLE_STATES)
+		# create profession table
+		self.cursor.execute(CREATE_TABLE_PROFESSION)	
 		# create requirements table
 		self.cursor.execute(CREATE_TABLE_REQUIREMENTS)
 
 		#=== Application Related Tables
-		# create profession table
-		self.cursor.execute(CREATE_TABLE_PROFESSION)	
 		# create application table	
 		self.cursor.execute(CREATE_TABLE_APPLICATION)
 		# create app_docs table
