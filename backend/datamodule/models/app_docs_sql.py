@@ -7,10 +7,10 @@
 
 CREATE_TABLE_APP_DOCS = """
 CREATE TABLE IF NOT EXISTS _app_docs (
-    id UUID PRIMARY KEY,
-    application_id UUID NOT NULL,
-    document_id UUID NOT NULL,
-    requirements_id UUID NOT NULL
+    id varchar(36) PRIMARY KEY,
+    application_id varchar(36) NOT NULL,
+    document_id varchar(36) NOT NULL,
+    requirements_id varchar(36) NOT NULL
 );
 """
 

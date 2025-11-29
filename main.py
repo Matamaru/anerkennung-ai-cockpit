@@ -6,4 +6,10 @@
 #****************************************************************************
 
 #=== Imports
-from backend.datamodule import db
+from frontend.webapp import create_app
+
+#=== Create Flask App
+app = create_app()	
+
+if __name__ == "__main__":
+	app.run(debug=True)

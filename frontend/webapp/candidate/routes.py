@@ -89,8 +89,8 @@ def get_requirements_for_application(application_id) -> list[dict]:
     query = """
     SELECT r.id, r.name, r.description
     FROM _requirements r
-    JOIN _app_requirements ar ON r.id = ar.requirements_id
-    WHERE ar.application_id = %s
+    JOIN _app_docs ad ON r.id = ad.requirements_id
+    WHERE ad.application_id = %s
     """
     try:
         db.connect()
