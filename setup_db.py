@@ -65,11 +65,11 @@ try:
 	# default states
 	State.create_default_states()
 
-	# default requirements
-	Requirements.create_default_requirements()
-
 	# default professions
 	Profession.create_default_professions()
+
+	# default requirements
+	Requirements.create_default_requirements()
 
 except Exception as error:
 	print(f"Error during database setup: {error}")
