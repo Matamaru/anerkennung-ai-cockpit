@@ -9,6 +9,7 @@
 from flask import flash, redirect, render_template, url_for, request
 from flask_login import login_required
 from backend.datamodule.models.country import Country
+from backend.datamodule.models.profession import Profession
 from backend.datamodule.models.state import State
 from backend.datamodule.models.requirements import Requirements
 from backend.datamodule.models.document_type import DocumentType
@@ -179,7 +180,7 @@ def requirements_management():
     else:
         selected_state_name = ""
 
-    #TODO : handle profession_id similarly if needed
+    #TODO : handle profession_id for further professions
 
     if selected_req:
         form = RequirementForm(
@@ -203,14 +204,19 @@ def requirements_management():
 
     country_name_by_id: dict[str, str] = {}
     state_name_by_id: dict[str, str] = {}
+    profession_name_by_id: dict[str, str] = {}
 
     country_ids = set()
     state_ids = set()
+    profession_ids = set()
+
     for req in all_requirements:
         if req.country_id:
             country_ids.add(req.country_id)
         if req.state_id:
             state_ids.add(req.state_id)
+        if req.profession_id:
+            profession_ids.add(req.profession_id)
 
     # resolve countries
     for cid in country_ids:
@@ -227,6 +233,14 @@ def requirements_management():
             continue
         s = State.from_tuple(st)
         state_name_by_id[sid] = s.name
+
+    # resolve professions
+    for pid in profession_ids:
+        pt = Profession.get_by_id(pid)
+        if not pt:
+            continue
+        p = Profession.from_tuple(pt)
+        profession_name_by_id[pid] = p.name
 
     # list of country names for dropdown
     countries = sorted(set(country_name_by_id.values()))
@@ -246,6 +260,20 @@ def requirements_management():
     states_for_country = {
         c: sorted(list(s_set)) for c, s_set in states_for_country.items()
     }
+
+    # map all countries and states to professions
+    # (not used in template yet)
+    professions_for_country_state: dict[tuple[str, str], set[str]] = {}
+    for req in all_requirements:
+        cid = req.country_id
+        sid = req.state_id
+        pid = req.profession_id
+        c_name = country_name_by_id.get(cid)
+        s_name = state_name_by_id.get(sid)
+        p_name = profession_name_by_id.get(pid)
+        if not c_name or not s_name or not p_name:
+            continue
+        professions_for_country_state.setdefault((c_name, s_name), set()).add(p_name)
 
     # fallback: ALL states (used if something with mapping goes wrong)
     all_states = sorted(set(state_name_by_id.values()))

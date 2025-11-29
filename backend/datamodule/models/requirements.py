@@ -330,265 +330,120 @@ class Requirements(Model):
 
     @staticmethod
     def create_default_requirements():
-        # default requirements data, e.g.: ID, degree, translation
+        # Default requirements data, e.g.: ID, degree, translation
         default_requirements = {
-
-            "DE-BY": [
-                {
-                    "name": "ID",
-                    "description": "Proof of identity (passport or ID card). Translation usually not required unless script is non-Latin.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "CV",
-                    "description": "Tabular CV with date and signature.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "QualificationCertificate",
-                    "description": "Professional diploma / certificate. Certified German translation required if not issued in German.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "Transcript",
-                    "description": "List of subjects, hours and grades (training content). Certified German translation required if not issued in German.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "ProfessionalExperience",
-                    "description": "Employment references or experience proofs. Often need German translations; exact rule depends on authority.",
-                    "optional": True,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "BirthCertificate",
-                    "description": "Birth certificate (and name-change certificate if relevant). Translation may be required if not in German; check authority.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                               "fullfilled": False
-                },
-                {
-                    "name": "PoliceClearance",
-                    "description": "Police record extract / certificate of good conduct. Translation may be required if not in German; check authority.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "MedicalCertificate",
-                    "description": "Medical fitness certificate (if required). Translation may be required if not in German; check authority.",
-                    "optional": True,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "LanguageCertificate",
-                    "description": "German language certificate (usually B2 for nursing). Normally issued directly in German; no translation necessary.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                }
-            ],
-
-            "DE-NW": [
-                {
-                    "name": "ID",
-                    "description": "Proof of identity (passport or ID card). Translation usually not required unless script is non-Latin.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "CV",
-                    "description": "Tabular CV with date and signature (usually created directly in German, no translation of a foreign CV).",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "QualificationCertificate",
-                    "description": "Professional diploma / certificate. Certified German translation required if not issued in German.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "Transcript",
-                    "description": "List of subjects, hours and grades (training content). Certified German translation required if not issued in German.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "ProfessionalExperience",
-                    "description": "Employment references or experience proofs. Often need German translations; exact rule depends on authority.",
-                    "optional": True,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "BirthCertificate",
-                    "description": "Birth certificate (and name-change certificate if relevant). Translation may be required if not in German; check authority.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "PoliceClearance",
-                    "description": "Police record extract / certificate of good conduct. Translation may be required if not in German; check authority.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "MedicalCertificate",
-                    "description": "Medical fitness certificate (if required). Translation may be required if not in German; check authority.",
-                    "optional": True,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "LanguageCertificate",
-                    "description": "German language certificate (usually B2 for nursing). Normally issued directly in German; no translation necessary.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                }
-            ],
-
-            "DE-BE": [
-                {
-                    "name": "ID",
-                    "description": "Proof of identity (passport or ID card). Translation usually not required unless script is non-Latin.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "CV",
-                    "description": "Tabular CV with date and signature (usually created directly in German, no translation of a foreign CV).",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "QualificationCertificate",
-                    "description": "Professional diploma / certificate. Certified German translation required if not issued in German.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "Transcript",
-                    "description": "List of subjects, hours and grades (training content). Certified German translation required if not issued in German.",
-                    "optional": False,
-                    "translation_required_if_not_german": True,
-                    "fullfilled": False
-                },
-                {
-                    "name": "ProfessionalExperience",
-                    "description": "Employment references or experience proofs. Often need German translations; exact rule depends on authority.",
-                    "optional": True,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "BirthCertificate",
-                    "description": "Birth certificate (and name-change certificate if relevant). Translation may be required if not in German; check authority.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "PoliceClearance",
-                    "description": "Police record extract / certificate of good conduct. Translation may be required if not in German; check authority.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "MedicalCertificate",
-                    "description": "Medical fitness certificate (if required). Translation may be required if not in German; check authority.",
-                    "optional": True,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-                {
-                    "name": "LanguageCertificate",
-                    "description": "German language certificate (usually B2 for nursing). Normally issued directly in German; no translation necessary.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                },
-
-                {
-                    "name": "ProofOfBerlinResponsibility",
-                    "description": "Proof that Berlin is the responsible state (residence, employer, or job offer in Berlin). Usually in German; translation rarely required.",
-                    "optional": False,
-                    "translation_required_if_not_german": False,
-                    "fullfilled": False
-                }
-            ]
+            "Nurse": {
+                "DE-BY": [
+                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "QualificationCertificate", "description": "Professional diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "LanguageCertificate", "description": "German language certificate (B2 for nursing).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
+                ],
+                "DE-NW": [
+                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "QualificationCertificate", "description": "Professional diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "LanguageCertificate", "description": "German language certificate (B2 for nursing).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
+                ],
+                "DE-BE": [
+                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "QualificationCertificate", "description": "Professional diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "LanguageCertificate", "description": "German language certificate (B2 for nursing).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "ProofOfBerlinResponsibility", "description": "Proof that Berlin is the responsible state (residence, employer, or job offer).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
+                ]
+            },
+            "Doctor": {
+                "DE-BY": [
+                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "MedicalDegree", "description": "Medical diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "LanguageCertificate", "description": "German language certificate (C1 or higher).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
+                ],
+                "DE-NW": [
+                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "MedicalDegree", "description": "Medical diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "LanguageCertificate", "description": "German language certificate (C1 or higher).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
+                ],
+                "DE-BE": [
+                    {"name": "ID", "description": "Proof of identity (passport or ID card).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "CV", "description": "Tabular CV with date and signature.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "MedicalDegree", "description": "Medical diploma / certificate.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "Transcript", "description": "List of subjects, hours and grades.", "optional": False, "translation_required_if_not_german": True, "fullfilled": False},
+                    {"name": "ProfessionalExperience", "description": "Employment references or experience proofs.", "optional": True, "translation_required_if_not_german": False, "fullfilled": False},
+                    {"name": "LanguageCertificate", "description": "German language certificate (C1 or higher).", "optional": False, "translation_required_if_not_german": False, "fullfilled": False}
+                ]
+            }
         }
-
+    
         try:
             db.connect()
-            # Execute insert default requirements
-            for state_code, requirements in default_requirements.items():
-                country_code, state_abbr = state_code.split("-")
-                #print(f"country_code: {country_code}, state_abbr: {state_abbr}")
-                # Get country_id and state_id from Country and State models
-                db.cursor.execute(SELECT_COUNTRY_BY_CODE, (country_code,))
-                country_tuple = db.cursor.fetchone()
-               # if not country_tuple:
-               #     print(f"Country not found for code: {country_code}")
-               #     continue
-                country_id = country_tuple[0] if country_tuple else None
-                # Search for state code in states table instead if state abbbreviation, eg. "DE-BY" for Bavaria!
-                db.cursor.execute(SELECT_STATE_BY_ABBREVIATION, (state_code,))
-                state_tuple = db.cursor.fetchone()
-                # if not state_tuple:
-                #     print(f"State not found for abbreviation: {state_abbr}")
-                #     continue
-                state_id = state_tuple[0] if state_tuple else None
-                if not country_id or not state_id:
-                    print(f"Country or State not found for code: {state_code}")
-                    continue
-                # get profession id for "Nurse" profession
-                db.cursor.execute(SELECT_PROFESSION_BY_NAME, ("Nurse",))
+    
+            # Loop through professions (e.g., Nurse)
+            for profession_name, states in default_requirements.items():
+                # Fetch the profession_id (e.g., "Nurse")
+                db.cursor.execute(SELECT_PROFESSION_BY_NAME, (profession_name,))
                 profession_tuple = db.cursor.fetchone()
                 profession_id = profession_tuple[0] if profession_tuple else None
-                for req in requirements:
-                    values = (
-                        str(uuid4()), 
-                        profession_id,
-                        country_id,
-                        state_id,
-                        req["name"],
-                        req["description"],
-                        req["optional"],
-                        req["translation_required_if_not_german"],
-                        req["fullfilled"]
-                    )
-                    # Check if requirement already exists
-                    db.cursor.execute(SELECT_REQUIREMENTS_BY_PROFESSION_ID_COUNTRY_ID_STATE_ID, (profession_id, country_id, state_id))
-                    existing_req = db.cursor.fetchone()            
-                    if existing_req:
-                        print(f"Requirement {req['name']} for {state_code} already exists. Skipping.")
+    
+                if not profession_id:
+                    print(f"Profession '{profession_name}' not found.")
+                    continue
+                
+                # Loop through states (e.g., "DE-BY", "DE-NW")
+                for state_code, requirements in states.items():
+                    # Get country_id and state_id
+                    country_code, state_abbr = state_code.split("-")
+                    db.cursor.execute(SELECT_COUNTRY_BY_CODE, (country_code,))
+                    country_tuple = db.cursor.fetchone()
+                    country_id = country_tuple[0] if country_tuple else None
+    
+                    db.cursor.execute(SELECT_STATE_BY_ABBREVIATION, (state_abbr,))
+                    state_tuple = db.cursor.fetchone()
+                    state_id = state_tuple[0] if state_tuple else None
+    
+                    if not country_id or not state_id:
+                        print(f"Country or state not found for code: {state_code}")
                         continue
-                    # Insert requirement
-                    db.cursor.execute(INSERT_REQUIREMENT, values)
-                    print(f"Inserted default requirement '{req['name']}' for {state_code}.")
+                    
+                    # Insert the requirements for this state and profession
+                    for req in requirements:
+                        values = (
+                            str(uuid4()),  # Generate new UUID
+                            profession_id,  # Profession ID (e.g., Nurse)
+                            country_id,  # Country ID
+                            state_id,  # State ID
+                            req["name"],  # Requirement name (ID, CV, etc.)
+                            req["description"],  # Description
+                            req["optional"],  # Optional
+                            req["translation_required_if_not_german"],  # Translation requirement
+                            req["fullfilled"]  # Fulfilled status
+                        )
+    
+                        # Check if requirement already exists
+                        db.cursor.execute(SELECT_REQUIREMENTS_BY_PROFESSION_ID_COUNTRY_ID_STATE_ID, (profession_id, country_id, state_id))
+                        existing_req = db.cursor.fetchone()
+                        if existing_req:
+                            print(f"Requirement {req['name']} for {state_code} already exists. Skipping.")
+                            continue
+                        
+                        # Insert the requirement into the database
+                        db.cursor.execute(INSERT_REQUIREMENT, values)
+                        print(f"Inserted default requirement '{req['name']}' for {state_code}.")
+    
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error creating default requirements: {error}")
         finally:
             db.close_conn()
+    
