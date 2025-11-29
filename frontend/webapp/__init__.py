@@ -7,7 +7,7 @@
 
 from flask import Flask, render_template
 from flask_login import LoginManager
-from backend.config import StrictConfig as Config
+from backend.config import HerokuConfig as Config
 
 # create the LoginManager once, at module level
 login_manager = LoginManager()
