@@ -156,7 +156,7 @@ def requirements_management():
     # Load list for left side (requirements)
     req_tuple = Requirements.get_all()
     requirements = [Requirements.from_tuple(r) for r in req_tuple] if req_tuple else []
-    print(f"Total requirements loaded: {len(requirements)}")
+    #print(f"Total requirements loaded: {len(requirements)}")
 
     selected_req = Requirements.from_tuple(Requirements.get_by_id(selected_req_id)) if selected_req_id else None
 
@@ -202,13 +202,11 @@ def requirements_management():
 
     # ========= Build country/state name caches from ALL requirements =========
     all_requirements = requirements  # keep original list
+    print(f"Building name caches from {len(all_requirements)} total requirements")
 
     country_name_by_id: dict[str, str] = {}
-    print(f"country_name_by_id: {country_name_by_id}")
     state_name_by_id: dict[str, str] = {}
-    print(f"state_name_by_id: {state_name_by_id}")
     profession_name_by_id: dict[str, str] = {}
-    print(f"profession_name_by_id: {profession_name_by_id}")
 
     country_ids = set()
     state_ids = set()
@@ -268,6 +266,7 @@ def requirements_management():
         if not c_name or not s_name or not p_name:
             continue
         professions_for_country_state.setdefault((c_name, s_name), set()).add(p_name)
+    print(f"Professions for country/state mapping: {professions_for_country_state}")
 
     # Fallback: ALL states (used if something with mapping goes wrong)
     all_states = sorted(set(state_name_by_id.values()))

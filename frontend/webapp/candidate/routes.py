@@ -6,6 +6,7 @@
 #****************************************************************************
 
 #=== Imports
+from uuid import uuid4
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from backend.datamodule.models.document import Document
@@ -58,7 +59,7 @@ def get_documents_for_application(application_id) -> list[Document]:
         f.filename,
         f.filepath,
         doc_data.ocr_full_text,
-        ad.status_id,
+        d.status_id,
         ad.requirements_id
     FROM _app_docs ad
     JOIN _documents d ON ad.document_id = d.id
@@ -96,6 +97,7 @@ def get_requirements_for_application(application_id) -> list[dict]:
         db.connect()
         db.cursor.execute(query, (application_id,))
         req_tuples = db.cursor.fetchall()
+        print(f"Requirement tuples in candidate.get_requirements_for_application: {req_tuples}")
         requirements = []
         for rt in req_tuples:
             requirements.append({
@@ -160,7 +162,7 @@ def document_management():
     if not application_id:
         return redirect(url_for('candidate.applications_management'))  # If no application selected, redirect to applications page
 
-    # Get requirements for the selected application
+    # Get requirements associated with the selected application
     requirements = get_requirements_for_application(application_id)
 
     # Get documents associated with the selected application
@@ -288,6 +290,8 @@ def applicationsmanagement_save():
     country_id    = request.form.get("country_id")
     state_id      = request.form.get("state_id")
 
+    print(f"Saving application: id={app_id}, user_id={user_id}, profession_id={profession_id}, country_id={country_id}, state_id={state_id}")
+
     if app_id:
         update_app_tuple = Application.get_by_id(app_id)
         update_app = Application.from_tuple(update_app_tuple)
@@ -308,7 +312,45 @@ def applicationsmanagement_save():
             state_id=state_id,
         )
         new_app_tuple = new_application.insert()
-        selected_id = new_app_tuple[0] if new_app_tuple else None   
+        selected_id = new_app_tuple[0] if new_app_tuple else None
+
+    try:
+        db.connect()
+        # Add all requirements for the profession, country and state to the application
+        if selected_id:
+            # Fetch all requirements for the selected profession, country, and state
+            req_tuples = db.execute_query(
+                """
+                SELECT id FROM _requirements
+                WHERE profession_id = %s AND country_id = %s AND (state_id = %s OR state_id IS NULL)
+                """,
+                (profession_id, country_id, state_id)
+            )
+            requirement_ids = [rt[0] for rt in req_tuples] if req_tuples else []
+            print(f"Linking requirements {requirement_ids} to application {selected_id}")
+            
+
+            # Clear existing links
+            db.execute_query(
+                """
+                DELETE FROM _app_docs
+                WHERE application_id = %s
+                """,
+                (selected_id,)
+            )
+            # Link each requirement to the application    
+            for req_id in requirement_ids:
+                db.execute_query(
+                    """
+                    INSERT INTO _app_docs (id, application_id, document_id, requirements_id)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (str(uuid4()), selected_id, None, req_id)
+                )
+    except Exception as e:
+        print(f"Error linking requirements to application {selected_id}: {e}")
+    finally:
+        db.close_conn()
 
     return redirect(url_for("candidate.applicationsmanagement_detail", app_id=selected_id))
 

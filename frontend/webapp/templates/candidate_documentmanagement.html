@@ -23,7 +23,7 @@
               </div>
 
               <!-- Upload button for each requirement -->
-              <form method="POST" action="{{ url_for('candidate.upload_document') }}" enctype="multipart/form-data">
+              <form method="POST" action="{{ url_for('candidate.document_management') }}" enctype="multipart/form-data">
                 <input type="hidden" name="requirement_id" value="{{ req.id }}">
                 <input type="hidden" name="application_id" value="{{ application_id }}">
                 <input type="file" name="document" required>

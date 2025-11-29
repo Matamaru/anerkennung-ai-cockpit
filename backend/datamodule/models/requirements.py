@@ -379,7 +379,7 @@ class Requirements(Model):
                 
                 # Loop through states (e.g., "DE-BY", "DE-NW")
                 for state_code, requirements in states.items():
-                    print(f"Processing default requirements for profession '{profession_name}' in state '{state_code}'")
+                    #print(f"Processing default requirements for profession '{profession_name}' in state '{state_code}'")
                     # Get country_id and state_id
                     country_code, state_abbr = state_code.split("-")
                     #print(f"country_code: {country_code}")
