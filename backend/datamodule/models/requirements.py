@@ -366,9 +366,11 @@ class Requirements(Model):
     
             # Loop through professions (e.g., Nurse)
             for profession_name, states in default_requirements.items():
+                #print(f"Processing profession: {profession_name}")
                 # Fetch the profession_id (e.g., "Nurse")
                 db.cursor.execute(SELECT_PROFESSION_BY_NAME, (profession_name,))
                 profession_tuple = db.cursor.fetchone()
+                #print(f"profession_tuple for {profession_name}: {profession_tuple}")
                 profession_id = profession_tuple[0] if profession_tuple else None
     
                 if not profession_id:
@@ -377,13 +379,20 @@ class Requirements(Model):
                 
                 # Loop through states (e.g., "DE-BY", "DE-NW")
                 for state_code, requirements in states.items():
+                    print(f"Processing default requirements for profession '{profession_name}' in state '{state_code}'")
                     # Get country_id and state_id
                     country_code, state_abbr = state_code.split("-")
+                    #print(f"country_code: {country_code}")
+                    #print(f"state_abbr: {state_abbr}")
+
+                    # Fetch country_id
                     db.cursor.execute(SELECT_COUNTRY_BY_CODE, (country_code,))
                     country_tuple = db.cursor.fetchone()
+                    #print(f"country_tuple for code {country_code}: {country_tuple}")
                     country_id = country_tuple[0] if country_tuple else None
-    
-                    db.cursor.execute(SELECT_STATE_BY_ABBREVIATION, (state_abbr,))
+                    
+                    # Fetch state_id, use state code as abbreviation
+                    db.cursor.execute(SELECT_STATE_BY_ABBREVIATION, (state_code,))
                     state_tuple = db.cursor.fetchone()
                     state_id = state_tuple[0] if state_tuple else None
     
@@ -406,11 +415,19 @@ class Requirements(Model):
                         )
     
                         # Check if requirement already exists
+                        query = """
+                         SELECT *
+                         FROM _requirements
+                         WHERE profession_id = %s AND country_id = %s AND state_id = %s AND name = %s
+                        """
                         db.cursor.execute(SELECT_REQUIREMENTS_BY_PROFESSION_ID_COUNTRY_ID_STATE_ID, (profession_id, country_id, state_id))
                         existing_req = db.cursor.fetchone()
                         if existing_req:
-                            print(f"Requirement {req['name']} for {state_code} already exists. Skipping.")
-                            continue
+                            if existing_req[4] == req["name"]:
+                                print(f"Requirement {req['name']} for {state_code} already exists. Skipping.")
+                                continue
+                            else:
+                                print(f"Requirement {req['name']} for {state_code} does not exist. Inserting.")
                         
                         # Insert the requirement into the database
                         db.cursor.execute(INSERT_REQUIREMENT, values)

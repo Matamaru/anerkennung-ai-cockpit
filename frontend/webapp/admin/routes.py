@@ -169,7 +169,7 @@ def requirements_management():
 
     if selected_req and selected_req.state_id:
         state_tuple = State.get_by_id(selected_req.state_id)
-        selected_state_name = state_tuple[1] if state_tuple else ""
+        selected_state_name = state_tuple[2] if state_tuple else ""
     else:
         selected_state_name = ""
 
@@ -230,7 +230,7 @@ def requirements_management():
     # Resolve states
     for sid in state_ids:
         st = State.get_by_id(sid)
-        state_name_by_id[sid] = st[1] if st else ""
+        state_name_by_id[sid] = st[2] if st else ""
 
     # Resolve professions
     for pid in profession_ids:
