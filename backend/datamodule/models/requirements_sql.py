@@ -8,6 +8,7 @@
 CREATE_TABLE_REQUIREMENTS = """
 CREATE TABLE IF NOT EXISTS _requirements (
     id VARCHAR(36) PRIMARY KEY,
+    profession_id VARCHAR(36),
     country_id VARCHAR(36),
     state_id VARCHAR(36),
     name VARCHAR(255) NOT NULL,
@@ -23,14 +24,14 @@ DROP TABLE IF EXISTS _requirements;
 """
 
 INSERT_REQUIREMENT = """
-INSERT INTO _requirements (id, country_id, state_id, name, description, optional, translation_required, fullfilled)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+INSERT INTO _requirements (id, profession_id, country_id, state_id, name, description, optional, translation_required, fullfilled)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
 RETURNING *
 """
 
 UPDATE_REQUIREMENT = """
 UPDATE _requirements
-SET country_id = %s, state_id = %s, name = %s, description = %s, optional = %s, translation_required = %s, fullfilled = %s
+SET profession_id = %s, country_id = %s, state_id = %s, name = %s, description = %s, optional = %s, translation_required = %s, fullfilled = %s
 WHERE id = %s
 RETURNING *;
 """ 
@@ -42,7 +43,7 @@ RETURNING *;
 """ 
 
 SELECT_REQUIREMENT_BY_ID = """
-SELECT id, country_id, state_id, name, description, optional, translation_required, fullfilled
+SELECT id, profession_id, country_id, state_id, name, description, optional, translation_required, fullfilled
 FROM _requirements
 WHERE id = %s;
 """ 
@@ -53,13 +54,19 @@ FROM _requirements
 """     
 
 SELECT_REQUIREMENT_BY_NAME = """
-SELECT id, country_id, state_id, name, description, optional, translation_required, fullfilled
+SELECT id, profession_id, country_id, state_id, name, description, optional, translation_required, fullfilled
 FROM _requirements
 WHERE name = %s;
 """
 
-SELECT_REQUIRMENT_BY_NAME_AND_STATE = """
-SELECT id, country_id, state_id, name, description, optional, translation_required, fullfilled
+SELECT_REQUIREMENT_BY_NAME_AND_STATE = """
+SELECT id, profession_id, country_id, state_id, name, description, optional, translation_required, fullfilled
 FROM _requirements
 WHERE name = %s AND state_id = %s;
+"""
+
+SELECT_REQUIREMENTS_BY_PROFESSION_ID_COUNTRY_ID_STATE_ID = """
+SELECT id, profession_id, country_id, state_id, name, description, optional, translation_required, fullfilled
+FROM _requirements
+WHERE profession_id = %s AND country_id = %s AND state_id = %s;
 """
