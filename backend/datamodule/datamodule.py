@@ -65,6 +65,9 @@ class DataBase:
 		self.cursor.execute("DROP TABLE IF EXISTS _states CASCADE;")
 		self.cursor.execute("DROP TABLE IF EXISTS _requirements CASCADE;")
 		self.cursor.execute("DROP TABLE IF EXISTS _profession CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _application CASCADE;")
+		self.cursor.execute("DROP TABLE IF EXISTS _app_docs CASCADE;")
+		
 		# Add more table drops as needed here
 		print('Database tables dropped if existing.')
 

@@ -23,8 +23,8 @@ try:
 	db.connect()
 	db.check_conn()
 
-	# in case of testing, drop all tables first, else comment out
-	#db.drop_all_tables()
+	# drop all tables, else comment out
+	db.drop_all_tables()
      
 	# create tables if not existing
 	db.create_all_tables()

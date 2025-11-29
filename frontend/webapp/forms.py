@@ -25,6 +25,7 @@ class UserForm(FlaskForm):
     submit = SubmitField('Save')
 
 class RequirementForm(FlaskForm):
+    #TODO: Add profession field
     country_name = StringField('Country Name', validators=[DataRequired()])
     state_name = StringField('State Name')
     req_name = StringField('Requirement Name', validators=[DataRequired()])

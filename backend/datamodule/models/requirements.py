@@ -13,12 +13,14 @@ import psycopg2
 from backend.datamodule.models.basemodel import *
 from backend.datamodule.models.country import Country
 from backend.datamodule.models.country_sql import SELECT_COUNTRY_BY_CODE
+from backend.datamodule.models.profession_sql import SELECT_PROFESSION_BY_NAME
 from backend.datamodule.models.state_sql import SELECT_STATE_BY_ABBREVIATION
 from backend.datamodule.models.requirements_sql import *
 from backend.datamodule import db
 
 class Requirements(Model):
     def __init__(self, 
+                 profession_id: str = None,
                  country_id: str = None, 
                  state_id: str = None, 
                  name: str = None, 
@@ -31,6 +33,7 @@ class Requirements(Model):
             self.id = id
         else:
             self.id = str(uuid4())
+        self.profession_id = profession_id
         self.country_id = country_id
         self.state_id = state_id
         self.name = name
@@ -43,7 +46,7 @@ class Requirements(Model):
         return f"<Requirement name={self.name} optional={self.optional} translation_required={self.translation_required} fullfilled={self.fullfilled}>"
     
     def insert(self) -> tuple:
-        values = (self.id, self.country_id, self.state_id, self.name, self.description, self.optional, self.translation_required, self.fullfilled)
+        values = (self.id, self.profession_id, self.country_id, self.state_id, self.name, self.description, self.optional, self.translation_required, self.fullfilled)
         try:
             db.connect()
             # Execute insert
@@ -301,19 +304,21 @@ class Requirements(Model):
     def from_tuple(t: tuple):
         return Requirements(
             id=t[0],
-            country_id=t[1],
-            state_id=t[2],
-            name=t[3],
-            description=t[4],
-            optional=t[5],
-            translation_required=t[6],
-            fullfilled=t[7]
+            profession_id=t[1],
+            country_id=t[2],
+            state_id=t[3],
+            name=t[4],
+            description=t[5],
+            optional=t[6],
+            translation_required=t[7],
+            fullfilled=t[8]
         )
     
     @staticmethod
     def from_json(data: dict):
         return Requirements(
             id=data.get("id"),
+            profession_id=data.get("profession_id"),
             country_id=data.get("country_id"),
             state_id=data.get("state_id"),
             name=data.get("name"),
@@ -558,9 +563,14 @@ class Requirements(Model):
                 if not country_id or not state_id:
                     print(f"Country or State not found for code: {state_code}")
                     continue
+                # get profession id for "Nurse" profession
+                db.cursor.execute(SELECT_PROFESSION_BY_NAME, ("Nurse",))
+                profession_tuple = db.cursor.fetchone()
+                profession_id = profession_tuple[0] if profession_tuple else None
                 for req in requirements:
                     values = (
                         str(uuid4()), 
+                        profession_id,
                         country_id,
                         state_id,
                         req["name"],
@@ -570,7 +580,7 @@ class Requirements(Model):
                         req["fullfilled"]
                     )
                     # Check if requirement already exists
-                    db.cursor.execute(SELECT_REQUIRMENT_BY_NAME_AND_STATE, (req["name"], state_id))
+                    db.cursor.execute(SELECT_REQUIREMENTS_BY_PROFESSION_ID_COUNTRY_ID_STATE_ID, (profession_id, country_id, state_id))
                     existing_req = db.cursor.fetchone()            
                     if existing_req:
                         print(f"Requirement {req['name']} for {state_code} already exists. Skipping.")
