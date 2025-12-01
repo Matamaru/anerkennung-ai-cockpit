@@ -47,7 +47,7 @@ SELECT *
 FROM _statuses
 """ 
 
-SELECT_STATUS_BY_NAME = """
+SELECT_BY_NAME = """
 SELECT id, name, description
 FROM _statuses
 WHERE name = %s;

@@ -6,10 +6,20 @@
 #****************************************************************************
 
 #=== Imports
+import os
+import pathlib
 from uuid import uuid4
-from flask import render_template, request, redirect, url_for, flash
+from flask import json, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
+from backend.datamodule.models.document_data_sql import INSERT_DOCUMENT_DATA
+from backend.datamodule.models.status_sql import SELECT_BY_NAME
 from backend.datamodule.models.document import Document
+from backend.datamodule.models.document_data import DocumentData
+from backend.datamodule.models.document_type import DocumentType
+from backend.datamodule.models.document_type_sql import SELECT_DOCUMENT_TYPE_BY_NAME
+from backend.datamodule.models.file import File
+from backend.datamodule.models.file_type import FileType
+from backend.datamodule.models.status import Status
 from frontend.webapp.candidate import candidate_bp
 from frontend.webapp.utils import candidate_required
 from backend.datamodule.models.profession import Profession
@@ -17,6 +27,7 @@ from backend.datamodule.models.country import Country
 from backend.datamodule.models.state import State 
 from backend.datamodule.models.application import Application
 from backend.datamodule import db
+from backend.services.ocr import analyze_bytes
 
 
 #=== helpers
@@ -97,7 +108,7 @@ def get_requirements_for_application(application_id) -> list[dict]:
         db.connect()
         db.cursor.execute(query, (application_id,))
         req_tuples = db.cursor.fetchall()
-        print(f"Requirement tuples in candidate.get_requirements_for_application: {req_tuples}")
+        #print(f"Requirement tuples in candidate.get_requirements_for_application: {req_tuples}")
         requirements = []
         for rt in req_tuples:
             requirements.append({
@@ -105,7 +116,7 @@ def get_requirements_for_application(application_id) -> list[dict]:
                 'name': rt[1],
                 'description': rt[2]
             })
-        print(f"Fetched {len(requirements)} requirements for application {application_id}")
+        #print(f"Fetched {len(requirements)} requirements for application {application_id}")
         return requirements
     except Exception as e:
         print(f"Error fetching requirements for application {application_id}: {e}")
@@ -154,8 +165,219 @@ def get_document_details(document_id) -> Document:
 
 @login_required
 @candidate_required
-@candidate_bp.route("/dashboard/candidate/documentmanagement")
+@candidate_bp.route("/dashboard/candidate/documentmanagement", methods=["GET", "POST"])
 def document_management():
+    if request.method == "POST":
+        # Handle document upload
+        requirement_id = request.form.get("requirement_id")
+        application_id = request.form.get("application_id")
+        file = request.files.get("document")
+        #print(f"Received upload for requirement_id={requirement_id}, application_id={application_id}, file={file.filename if file else 'No File'}")
+
+        if not requirement_id or not application_id or not file:
+            flash("Missing requirement, application, or file for upload.", "danger")
+            return redirect(url_for('candidate.document_management', application_id=application_id))
+
+        # check file type and if allowed get file_type_id
+        file_ext = os.path.splitext(file.filename)[1][1:].upper()  # get extension without dot and uppercase
+        ft_tuple = FileType.get_by_name(file_ext)
+        if not ft_tuple:
+            flash(f"File type {file_ext} is not allowed.", "danger")
+            return redirect(url_for('candidate.document_management', application_id=application_id))
+        else:
+            file_type_id = FileType.from_tuple(ft_tuple).id
+        
+        # save file to storage and create File record
+        # get file name and path
+        filename = file.filename
+
+        # create dir if not exists with user id in backend/uploads/<user_id>/
+        user_dir = os.path.join("backend", "uploads", str(current_user.id))
+        os.makedirs(user_dir, exist_ok=True)
+        
+        # storage path
+        storage_path = os.path.join(user_dir, str(current_user.id) + "_" + filename)
+
+        # check if document already exists in db and storage
+        if os.path.exists(storage_path):
+            # check in db
+            try:
+                db.connect()
+                db.cursor.execute("SELECT * FROM _files WHERE filename = %s", (filename,))
+                existing_file_tuple = db.cursor.fetchone()
+            except Exception as e:
+                print(f"Error checking existing file in DB: {e}")
+                existing_file_tuple = None
+            finally:
+                db.close_conn()
+            if existing_file_tuple:
+                flash("A document with the same name already exists.", "danger")
+                return redirect(url_for('candidate.document_management', application_id=application_id))
+            else:
+                # file exists in storage but not in db, proceed to save new file record
+                nf_tuple = File(filename=filename, filepath=storage_path, filetype_id=file_type_id).insert()
+                if not nf_tuple:
+                    flash("Error saving document record for existing file.", "danger")
+                    return redirect(url_for('candidate.document_management', application_id=application_id))
+                else:
+                    file_id = nf_tuple[0]
+        else:
+            #check if file with same name exists in db
+            try:
+                db.connect()
+                db.cursor.execute("SELECT * FROM _files WHERE filename = %s", (filename,))
+                existing_file_tuple = db.cursor.fetchone()
+            except Exception as e:
+                print(f"Error checking existing file in DB: {e}")
+                existing_file_tuple = None
+            finally:
+                db.close_conn()
+            if existing_file_tuple:
+                file.save(storage_path)  # save file to storage
+                file_id = File.from_tuple(existing_file_tuple).id
+                if not file_id:
+                    flash("Error saving document record.", "danger")
+                    return redirect(url_for('candidate.document_management', application_id=application_id))
+            else:
+                file.save(storage_path)  # save file to storage
+                file_id = File(
+                    filename=filename,
+                    filepath=storage_path,
+                    filetype_id=file_type_id
+                ).insert()[0]
+                if not file_id:
+                    flash("Error saving document record.", "danger")
+                    return redirect(url_for('candidate.document_management', application_id=application_id))
+
+        # Document data creation
+        # use ocr module to extract text from the uploaded file
+        #p = pathlib.Path(image_path)
+        #b = p.read_bytes()
+        #res = analyze_bytes(b) -> OrcResult object
+        p = pathlib.Path(storage_path)
+        b = p.read_bytes()
+        res = analyze_bytes(b)
+        doc_type_prediction = res.doc_type
+        #print(f'Type Document Prediction: {type(doc_type_prediction)}, Value: {doc_type_prediction}')
+        predictions = res.predictions
+        ocr_full_text = res.ocr_text
+        fields = res.fields
+
+        # turn predictions into a single string, separated by new lines
+        doc_type_prediction_str = "\n".join(doc_type_prediction) if isinstance(doc_type_prediction, list) else str(doc_type_prediction)
+        predictions_str = "\n".join(predictions)
+
+        doc_data = DocumentData( 
+            ocr_doc_type_prediction=doc_type_prediction_str,
+            ocr_predictions_str=predictions_str,
+            ocr_full_text=ocr_full_text,
+            ocr_extracted_data=fields
+        )
+        #print(f"Creating DocumentData with predicted type: {doc_data}")
+
+        #print(f"DocumentData to be inserted: {doc_data.__dict__}")
+        try:
+            db.connect()
+            db.cursor.execute(
+                INSERT_DOCUMENT_DATA,
+                (
+                    doc_data.id,
+                    doc_data.ocr_doc_type_prediction_str,
+                    doc_data.ocr_predictions_str,
+                    doc_data.ocr_full_text,
+                    json.dumps(doc_data.ocr_extracted_data) if doc_data.ocr_extracted_data else None,
+                    doc_data.layoutlm_full_text,
+                    json.dumps(doc_data.layout_lm_data) if doc_data.layout_lm_data else None
+                )
+            )
+            doc_data_tuple = db.cursor.fetchone()   
+            if not doc_data_tuple:
+                flash("Error saving document data record.", "danger")
+                return redirect(url_for('candidate.document_management', application_id=application_id))
+            else:
+                document_data_id = doc_data_tuple[0]
+        except Exception as e:
+            print(f"Error inserting DocumentData: {e}")
+            doc_data_tuple = None
+        finally:
+            db.close_conn()
+
+        # status is "Uploaded" by default
+        try:
+            db.connect()
+            db.cursor.execute(SELECT_BY_NAME, ("Uploaded",))
+            status_tuple = db.cursor.fetchone()
+            status = Status.from_tuple(status_tuple[0]) if status_tuple else None
+            status_id = status.id if status else None
+        except Exception as e:
+            print(f"Error fetching status 'Uploaded': {e}")
+            status_id = None
+        finally:
+            db.close_conn()
+
+        # get document type id by predicted name
+        try:
+            db.connect()
+            db.cursor.execute(SELECT_DOCUMENT_TYPE_BY_NAME, (doc_type_prediction,))
+            doc_type_tuple = db.cursor.fetchone()
+            if not doc_type_tuple:
+                flash(f"Predicted document type '{doc_type_prediction}' is not recognized.", "danger")
+                document_type_id = None
+                return redirect(url_for('candidate.document_management', application_id=application_id))
+            else:
+                document_type = DocumentType.from_tuple(doc_type_tuple[0])
+                document_type_id = document_type.id
+        except Exception as e:
+            print(f"Error fetching document type '{doc_type_prediction}': {e}")
+            document_type_id = None
+        finally:
+            db.close_conn()
+
+        # create Document record
+        document = Document(
+            file_id=file_id,
+            document_type_id=document_type_id,
+            document_data_id=document_data_id,
+            status_id=status_id
+        )
+        try:
+            db.connect()
+            db.cursor.execute(
+                """
+                INSERT INTO _documents (id, file_id, document_type_id, document_data_id, status_id)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING *
+                """,
+                (
+                    document.id,
+                    document.file_id,
+                    document.document_type_id,
+                    document.document_data_id,
+                    document.status_id
+                )
+            )
+            document_tuple = db.cursor.fetchone()
+            if not document_tuple:
+                flash("Error saving document record.", "danger")
+                return redirect(url_for('candidate.document_management', application_id=application_id))
+            document_id = document_tuple[0]
+        except Exception as e:
+            print(f"Error inserting Document: {e}")
+            document_id = None
+        finally:
+            db.close_conn()
+
+        # link Document to Application and Requirement in _app_docs
+        
+        
+        # load documents to display in document management view
+        documents = get_documents_for_application(application_id)   
+
+
+
+        flash("Document uploaded successfully.", "success")
+        return redirect(url_for('candidate.document_management', application_id=application_id, documents=documents))
+    
     # Get the application_id from the URL or session
     application_id = request.args.get('application_id')
 
@@ -290,7 +512,7 @@ def applicationsmanagement_save():
     country_id    = request.form.get("country_id")
     state_id      = request.form.get("state_id")
 
-    print(f"Saving application: id={app_id}, user_id={user_id}, profession_id={profession_id}, country_id={country_id}, state_id={state_id}")
+    #print(f"Saving application: id={app_id}, user_id={user_id}, profession_id={profession_id}, country_id={country_id}, state_id={state_id}")
 
     if app_id:
         update_app_tuple = Application.get_by_id(app_id)
@@ -327,7 +549,7 @@ def applicationsmanagement_save():
                 (profession_id, country_id, state_id)
             )
             requirement_ids = [rt[0] for rt in req_tuples] if req_tuples else []
-            print(f"Linking requirements {requirement_ids} to application {selected_id}")
+            #print(f"Linking requirements {requirement_ids} to application {selected_id}")
             
 
             # Clear existing links

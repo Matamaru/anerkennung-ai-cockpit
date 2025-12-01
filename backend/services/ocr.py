@@ -122,11 +122,11 @@ def classify_doc(predictions: list) -> str:
     # MRZ detection
     mrz_lines = detect_mrz_lines(predictions)
     if len(mrz_lines) > 0:
-        return "passport"
+        return "Passport"
     if any(h in predictions for h in PASSPORT_HINTS):
-        return "passport"
+        return "Passport"
     if any(h in predictions for h in DIPLOMA_HINTS_DE | DIPLOMA_HINTS_EN):
-        return "diploma"
+        return "Degree Certificate"
     return "unknown"
 
 #=== Field extraction ==================================================
@@ -249,19 +249,20 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
     doc_type = classify_doc(predictions)
     fields = {}
 
-    if doc_type == "passport":
+    if doc_type == "Passport":
         fields = extract_passport_fields(predictions)
         ocr_text = "\n".join(predictions)
-    elif doc_type == "diploma":
+    elif doc_type == "Degree Certificate":
         pass
         fields = extract_diploma_fields(ocr_text)
         predictions = ocr_text.splitlines()
         
     return OcrResult(doc_type=doc_type, predictions=predictions, ocr_text=ocr_text, fields=fields)
 
-image_path = "/home/chief/Projects/anerkennung_ai_cockpit/dummy_docs/id_HM.jpg"
 
-p = pathlib.Path(image_path)
-b = p.read_bytes()
-res = analyze_bytes(b)
-print(res)
+#image_path = "/home/chief/Projects/anerkennung_ai_cockpit/dummy_docs/id_HM.jpg"
+#
+#p = pathlib.Path(image_path)
+#b = p.read_bytes()
+#res = analyze_bytes(b)
+#

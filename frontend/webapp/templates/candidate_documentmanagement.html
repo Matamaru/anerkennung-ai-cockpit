@@ -13,7 +13,7 @@
 
       <!-- LEFT: Requirements list -->
       <div class="col-md-4 mb-3">
-        <h5>Requirements</h5>
+        <h5>Requirements</h5
         <ul class="list-group">
           {% for req in requirements %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -70,4 +70,31 @@
 
     </div>
   </div>
+
+<!-- JavaScript to enforce max file size on client side -->
+<script>
+  // Max file size in MB
+  const MAX_FILE_SIZE_MB = 16 ; // Adjust this value as needed
+  
+  // Function to check file size before form submission
+  function checkFileSize(event) {
+    const fileInput = event.target;
+    const file = fileInput.files[0];
+    
+    if (file) {
+      const fileSizeMB = file.size / (1024 * 1024); // Size in MB
+      if (fileSizeMB > MAX_FILE_SIZE_MB) {
+        alert(`File size exceeds the maximum limit of ${MAX_FILE_SIZE_MB} MB.`);
+        fileInput.value = ''; // Clear the file input
+        return false; // Prevent form submission
+      }
+    }
+    return true; // Allow form submission
+  }
+
+  // Add event listeners for each file input
+  document.querySelectorAll('input[type="file"]').forEach(input => {
+    input.addEventListener('change', checkFileSize);
+  });
+</script>
 {% endblock %}
