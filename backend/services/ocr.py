@@ -7,6 +7,7 @@
 
 #=== Imports =============================================================
 import io
+import os
 import cv2
 import numpy as np
 from PIL import Image
@@ -16,6 +17,13 @@ import re
 from dataclasses import dataclass
 from pdf2image import convert_from_bytes
 import pathlib
+try:
+    from caesar_ocr import analyze_bytes as caesar_analyze_bytes
+    from caesar_ocr.regex.engine import load_rules as caesar_load_rules, run_rules as caesar_run_rules
+except Exception:
+    caesar_analyze_bytes = None
+    caesar_load_rules = None
+    caesar_run_rules = None
 
 #=== Helpers =============================================================
 def _load_image_from_bytes(b: bytes) -> Image.Image:
@@ -231,6 +239,25 @@ class OcrResult:
 
 
 def analyze_bytes(file_bytes: bytes) -> OcrResult:
+    if caesar_analyze_bytes is not None:
+        res = caesar_analyze_bytes(file_bytes, lang="eng+deu")
+        rules_paths = _resolve_rules_paths(file_bytes)
+        if rules_paths and caesar_load_rules is not None and caesar_run_rules is not None:
+            for rules_path in rules_paths:
+                rules_file = pathlib.Path(rules_path)
+                if not rules_file.exists():
+                    continue
+                rules = caesar_load_rules(rules_file)
+                regex_fields = caesar_run_rules(res.ocr_text, rules, debug=False)
+                if regex_fields:
+                    res.fields.update(regex_fields)
+        _apply_doc_type_hints(res)
+        return OcrResult(
+            doc_type=res.doc_type,
+            predictions=res.predictions,
+            ocr_text=res.ocr_text,
+            fields=res.fields,
+        )
     # Detect file type
     if file_bytes[:4] == b'%PDF':  # quick check for PDF magic number
         # Convert PDF pages to images
@@ -258,6 +285,45 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
         predictions = ocr_text.splitlines()
         
     return OcrResult(doc_type=doc_type, predictions=predictions, ocr_text=ocr_text, fields=fields)
+
+
+def _resolve_rules_paths(file_bytes: bytes) -> list[str]:
+    env_paths = os.getenv("CAESAR_OCR_RULES_PATH")
+    if env_paths:
+        return [p.strip() for p in env_paths.split(",") if p.strip()]
+
+    rules_by_type = os.getenv("CAESAR_OCR_RULES_BY_TYPE")
+    if rules_by_type:
+        file_kind = "pdf" if file_bytes[:4] == b"%PDF" else "image"
+        mapping = {}
+        for part in rules_by_type.split(";"):
+            if not part.strip() or "=" not in part:
+                continue
+            key, val = part.split("=", 1)
+            mapping[key.strip().lower()] = [p.strip() for p in val.split(",") if p.strip()]
+        if file_kind in mapping:
+            return mapping[file_kind]
+
+    base = pathlib.Path(__file__).resolve().parents[2] / "backend" / "utils" / "ocr_rules"
+    return [str(base / "passport.yaml"), str(base / "diploma.yaml")]
+
+
+def _apply_doc_type_hints(res) -> None:
+    if getattr(res, "doc_type", "unknown") != "unknown":
+        return
+    fields = getattr(res, "fields", {}) or {}
+    if "mrz_line1" in fields or "mrz_line2" in fields:
+        res.doc_type = "Passport"
+        return
+    hint = str(fields.get("doc_type_hint", "")).lower()
+    if any(k in hint for k in ("passport", "reisepass", "passeport", "mrz")):
+        res.doc_type = "Passport"
+        return
+    if any(k in hint for k in ("diplom", "abschluss", "hochschule", "universit", "zeugnis", "degree")):
+        res.doc_type = "Degree Certificate"
+        return
+    if "degree_type" in fields or "holder_name" in fields:
+        res.doc_type = "Degree Certificate"
 
 
 #image_path = "/home/chief/Projects/anerkennung_ai_cockpit/dummy_docs/id_HM.jpg"

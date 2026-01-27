@@ -10,6 +10,7 @@
 from flask import flash, render_template, request, url_for, redirect
 from flask_login import login_user, logout_user, login_required
 from backend.datamodule.models import user
+from backend.datamodule.models.basemodel import InsertError
 from frontend.webapp.auth import auth_bp
 from backend.datamodule.models.user import User
 
@@ -82,8 +83,11 @@ def register_submit():
 
     # create new user
     new_user = User(username=username, password=password, email=email)
-    if new_user is None:
-        print('User creation failed.')
+    try:
+        new_user.insert()
+    except InsertError as error:
+        print(f'User creation failed: {error}')
+        flash('Registration failed. Please check your details.', 'error')
         redirect_url = url_for('auth.register')
         return redirect(redirect_url)
 

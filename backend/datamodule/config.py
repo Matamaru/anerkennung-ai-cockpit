@@ -19,22 +19,30 @@ def config_db():
     # db dict
     db = {}
 
-    # Get the DATABASE_URL from the environment variable (set by Heroku)
+    # Prefer DATABASE_URL (Heroku-style)
     DATABASE_URL = os.getenv("DATABASE_URL")
-    
-    # If DATABASE_URL is not set, raise an error
-    if DATABASE_URL is None:
-        raise ValueError("DATABASE_URL environment variable not set")
-    
-    # Parse the DATABASE_URL
-    result = urlparse(DATABASE_URL)
-    
-    # Extract connection details from the parsed URL
-    db['host'] = result.hostname
-    db['port'] = result.port
-    db['dbname'] = result.path[1:]  # Remove leading '/' from path
-    db['user'] = result.username
-    db['password'] = result.password
+
+    if DATABASE_URL:
+        # Parse the DATABASE_URL
+        result = urlparse(DATABASE_URL)
+        # Extract connection details from the parsed URL
+        db['host'] = result.hostname
+        db['port'] = result.port
+        db['dbname'] = result.path[1:]  # Remove leading '/' from path
+        db['user'] = result.username
+        db['password'] = result.password
+        return db
+
+    # Local fallback
+    db['host'] = os.getenv("DB_HOST", "localhost")
+    db['port'] = int(os.getenv("DB_PORT", "5432"))
+    db['dbname'] = os.getenv("DB_NAME")
+    db['user'] = os.getenv("DB_USER")
+    db['password'] = os.getenv("DB_PASSWORD")
+
+    missing = [k for k, v in db.items() if v in (None, "")]
+    if missing:
+        raise ValueError(f"Missing DB config values: {', '.join(missing)}")
 
     return db
 

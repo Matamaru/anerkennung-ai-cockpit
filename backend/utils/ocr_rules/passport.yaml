@@ -1,0 +1,13 @@
+# Passport MRZ + hints
+- name: mrz_line1
+  pattern: '(?m)^[A-Z0-9<]{30,}$'
+  group: 0
+  output_field: mrz_line1
+- name: mrz_line2
+  pattern: '(?m)^[A-Z0-9<]{30,}$'
+  group: 0
+  output_field: mrz_line2
+- name: doc_type_hint
+  pattern: '(?i)(passport|reisepass|passeport|mrz)'
+  group: 1
+  output_field: doc_type_hint

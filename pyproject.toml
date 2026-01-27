@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anerkennung-ai-cockpit"
+version = "0.0.1"
+description = "A lightweight web platform for Anerkennung workflows."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "blinker==1.9.0",
+  "click==8.3.0",
+  "contourpy==1.3.3",
+  "cycler==0.12.1",
+  "Flask==3.0.0",
+  "Flask-Login==0.6.3",
+  "Flask-WTF==1.2.2",
+  "fonttools==4.60.1",
+  "gunicorn==23.0.0",
+  "imageio==2.37.0",
+  "itsdangerous==2.2.0",
+  "Jinja2==3.1.6",
+  "joblib==1.5.2",
+  "kiwisolver==1.4.9",
+  "lazy_loader==0.4",
+  "MarkupSafe==3.0.3",
+  "matplotlib==3.10.7",
+  "networkx==3.5",
+  "numpy",
+  "opencv-python==4.12.0.88",
+  "packaging==25.0",
+  "pandas==2.3.3",
+  "pdf2image==1.17.0",
+  "pdfminer==20191125",
+  "pillow==12.0.0",
+  "psycopg2-binary==2.9.11",
+  "pycryptodome==3.23.0",
+  "pyparsing==3.2.5",
+  "pytesseract==0.3.13",
+  "python-dateutil==2.9.0.post0",
+  "python-dotenv==1.0.1",
+  "pytz==2025.2",
+  "scikit-image==0.25.2",
+  "scikit-learn==1.7.2",
+  "scipy==1.16.3",
+  "setuptools==80.9.0",
+  "six==1.17.0",
+  "threadpoolctl==3.6.0",
+  "tifffile==2025.10.16",
+  "tzdata==2025.2",
+  "Werkzeug==3.1.3",
+  "WTForms==3.2.1",
+  "caesar-ocr @ file:///home/chief/Projects/caesar_ocr",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*"]
