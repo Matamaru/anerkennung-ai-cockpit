@@ -6,3 +6,6 @@ uploads/
 */logs/
 logs/
 *.log
+.venv/
+*.egg-info/
+__pycache__/
