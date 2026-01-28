@@ -1,5 +1,3 @@
-from backend.datamodule.config import config_db
-from backend.datamodule.datamodule import DataBase
+from backend.datamodule.sa import Base, engine, session_scope, SessionLocal
 
-params = config_db()
-db = DataBase(params)
+__all__ = ["Base", "engine", "session_scope", "SessionLocal"]

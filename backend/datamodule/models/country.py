@@ -5,20 +5,16 @@
 #	Version:	    0.0.1									                *
 #****************************************************************************
 
-#=== Imports
 from uuid import uuid4
-import psycopg2
-from backend.datamodule.models.basemodel import *
-from backend.datamodule.models.country_sql import *
-from backend.datamodule import db   
 
-#=== Country Model
+from backend.datamodule.models.basemodel import *
+from backend.datamodule.orm import Country as CountryORM
+from backend.datamodule.sa import session_scope
+
+
 class Country(Model):
     def __init__(self, name: str = None, abbreviation: str = None, description: str = None, id: str = None):
-        if id:
-            self.id = id
-        else:
-            self.id = str(uuid4())
+        self.id = id or str(uuid4())
         self.name = name
         self.abbreviation = abbreviation
         self.description = description
@@ -27,59 +23,44 @@ class Country(Model):
         return f"<Country name={self.name} abbreviation={self.abbreviation}>"
     
     def insert(self) -> tuple:
-        values = (self.id, self.name, self.abbreviation, self.description)
         try:
-            db.connect()
-            # Execute insert
-            db.cursor.execute(INSERT_COUNTRY, values)
-            tuple_country = db.cursor.fetchone()
-
-            if not tuple_country:
-                raise InsertError("Failed to insert country into database.")
-        
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_country = CountryORM(
+                    id=self.id,
+                    name=self.name,
+                    code=self.abbreviation,
+                    description=self.description,
+                )
+                session.add(orm_country)
+                session.flush()
+                return Country._as_tuple(orm_country)
+        except Exception as error:
             raise InsertError(error)
-
-        finally:
-            db.close_conn()
-            return tuple_country
         
     def update(self, values: tuple) -> tuple:
         try:
-            db.connect()
-            # Execute update
-            db.cursor.execute(UPDATE_COUNTRY, values)
-            tuple_country = db.cursor.fetchone()
-
-            if not tuple_country:
-                raise UpdateError("Failed to update country in database.")
-            
-            return tuple_country
-
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_country = session.query(CountryORM).filter_by(id=values[3]).first()
+                if not orm_country:
+                    raise UpdateError("Country not found.")
+                orm_country.name = values[0]
+                orm_country.code = values[1]
+                orm_country.description = values[2]
+                session.flush()
+                return Country._as_tuple(orm_country)
+        except Exception as error:
             raise UpdateError(error)
-        
-        finally:
-            db.close_conn()
 
     def delete(self) -> tuple:
-        values = (self.id,)
         try:
-            db.connect()
-            # Execute delete
-            db.cursor.execute(DELETE_COUNTRY, values)
-            tuple_country = db.cursor.fetchone()
-
-            if not tuple_country:
-                raise DeleteError("Failed to delete country from database.")
-            
-            return tuple_country
-
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_country = session.query(CountryORM).filter_by(id=self.id).first()
+                if not orm_country:
+                    raise DeleteError("Country not found.")
+                session.delete(orm_country)
+                return Country._as_tuple(orm_country)
+        except Exception as error:
             raise DeleteError(error)
-
-        finally:
-            db.close_conn()
 
     @staticmethod
     def from_tuple(tuple_country: tuple):
@@ -105,101 +86,58 @@ class Country(Model):
     
     @staticmethod
     def get_by_id(id: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_COUNTRY_BY_ID, (id,))
-            tuple_country = db.cursor.fetchone()
-
-            if not tuple_country:
+        with session_scope() as session:
+            orm_country = session.query(CountryORM).filter_by(id=id).first()
+            if not orm_country:
                 raise RecordNotFoundError("Country not found in database.")
-            
-            return tuple_country
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-
-        finally:
-            db.close_conn()
-
+            return Country._as_tuple(orm_country)
 
     @staticmethod
     def get_by_name(name: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_COUNTRY_BY_NAME, (name,))
-            tuple_country = db.cursor.fetchone()
-
-            if not tuple_country:
+        with session_scope() as session:
+            orm_country = session.query(CountryORM).filter_by(name=name).first()
+            if not orm_country:
                 raise RecordNotFoundError("Country not found in database.")
-            
-            return tuple_country
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        
-        finally:
-            db.close_conn()
+            return Country._as_tuple(orm_country)
 
     @staticmethod
     def get_all() -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_ALL_COUNTRIES)
-            tuples_countries = db.cursor.fetchall()
-
-            return tuples_countries
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-
-        finally:
-            db.close_conn() 
+        with session_scope() as session:
+            countries = session.query(CountryORM).all()
+            return [Country._as_tuple(c) for c in countries]
 
     @staticmethod
     def get_by_code(code: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_COUNTRY_BY_CODE, (code,))
-            tuple_country = db.cursor.fetchone()
-
-            if not tuple_country:
+        with session_scope() as session:
+            orm_country = session.query(CountryORM).filter_by(code=code).first()
+            if not orm_country:
                 raise RecordNotFoundError("Country not found in database.")
-            
-            return tuple_country
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-
-        finally:
-            db.close_conn()
+            return Country._as_tuple(orm_country)
 
     @staticmethod
     def create_default_countries() -> tuple:
-        # country code ISO 3166-1 alpha-2
         default_countries = [
             ("Germany", "DE", "Germany")
-            # Add more default countries as needed        
-            ]
+        ]
         try:
-            db.connect()
-            # Execute insert default countries
-            for country in default_countries:
-                # check if country already exists
-                db.cursor.execute(SELECT_COUNTRY_BY_CODE, (country[1],))
-                tuple_country = db.cursor.fetchone()
-                if not tuple_country:
-                    values = (str(uuid4()), country[0], country[1], country[2])
-                    db.cursor.execute(INSERT_COUNTRY, values)
-                    print(f"Inserted default country '{country[0]}'.")
-                else:
-                    print(f"Country '{country[0]}' already exists.")
-            db.conn.commit()
+            with session_scope() as session:
+                for country in default_countries:
+                    existing = session.query(CountryORM).filter_by(code=country[1]).first()
+                    if not existing:
+                        orm_country = CountryORM(
+                            id=str(uuid4()),
+                            name=country[0],
+                            code=country[1],
+                            description=country[2],
+                        )
+                        session.add(orm_country)
+                        print(f"Inserted default country '{country[0]}'.")
+                    else:
+                        print(f"Country '{country[0]}' already exists.")
             return Country.get_all()
-        except (Exception, psycopg2.DatabaseError) as error:
+        except Exception as error:
             raise InsertError(error)
-        finally:
-            db.close_conn()
+
+    @staticmethod
+    def _as_tuple(orm_country: CountryORM) -> tuple:
+        return (orm_country.id, orm_country.name, orm_country.code, orm_country.description)

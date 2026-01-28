@@ -1,179 +1,140 @@
 #****************************************************************************
 #   Application:	Anerkennung AI Cockpit							        *
-#	Module:		    backend.datamodule.models.app_docs                       *
+#	Module:		    backend.datamodule.models.app_docs                      *
 #	Author:		    Heiko Matamaru, IGS    						            *
 #	Version:	    0.0.1									                *
 #****************************************************************************
 
-#=== Imports
 from uuid import uuid4
-import psycopg2
-from backend.datamodule.datamodule import db
-from backend.datamodule.models.app_docs_sql import *
-from backend.datamodule.models.application import Application
-from backend.datamodule.models.document import Document
-from backend.datamodule.models.requirements import Requirements
-from backend.datamodule.models.basemodel import *
 
-#=== AppDocs Model  
+from backend.datamodule.models.basemodel import *
+from backend.datamodule.orm import AppDoc as AppDocORM, Document as DocumentORM, DocumentData as DocumentDataORM, DocumentType as DocumentTypeORM, File as FileORM, FileType as FileTypeORM, Status as StatusORM, User as UserORM
+from backend.datamodule.sa import session_scope
+
+
 class AppDocs(Model):
-    def __init__(self, id: str, application_id: str, document_id: str, requirements_id: str):
-        self.id = id
+    def __init__(
+            self, 
+            application_id: str = None, 
+            document_id: str = None, 
+            requirements_id: str = None, 
+            id: str = None):
+        self.id = id or str(uuid4())
         self.application_id = application_id
         self.document_id = document_id
         self.requirements_id = requirements_id
 
-    def insert(self):
-        values = (self.id, self.application_id, self.document_id, self.requirements_id)
+    def insert(self) -> tuple:
         try:
-            db.connect()
-            # Execute insert
-            db.cursor.execute(INSERT_APP_DOCS, values)
-            tuple_app_docs = db.cursor.fetchone()
-            if not tuple_app_docs:
-                raise InsertError("Failed to insert AppDocs into database.")
-            return tuple_app_docs
-            
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_app_docs = AppDocORM(
+                    id=self.id,
+                    application_id=self.application_id,
+                    document_id=self.document_id,
+                    requirements_id=self.requirements_id,
+                )
+                session.add(orm_app_docs)
+                session.flush()
+                return AppDocs._as_tuple(orm_app_docs)
+        except Exception as error:
             raise InsertError(error)
-        finally:
-            db.close()
 
-    def update(self, values: tuple):
+    def update(self, values: tuple) -> tuple:
         try:
-            db.connect()
-            # Execute update
-            db.cursor.execute(UPDATE_APP_DOCS, values)
-            tuple_app_docs = db.cursor.fetchone()
-            if not tuple_app_docs:
-                raise UpdateError("Failed to update AppDocs in database.")
-            return tuple_app_docs
-
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_app_docs = session.query(AppDocORM).filter_by(id=values[3]).first()
+                if not orm_app_docs:
+                    raise UpdateError("AppDocs not found.")
+                orm_app_docs.application_id = values[0]
+                orm_app_docs.document_id = values[1]
+                orm_app_docs.requirements_id = values[2]
+                session.flush()
+                return AppDocs._as_tuple(orm_app_docs)
+        except Exception as error:
             raise UpdateError(error)
-        finally:
-            db.close()
 
-    def delete(self):
-        values = (self.id,)
+    def delete(self, values: tuple) -> tuple:
         try:
-            db.connect()
-            # Execute delete
-            db.cursor.execute(DELETE_APP_DOCS, values)
-            tuple_app_docs = db.cursor.fetchone()
-            if not tuple_app_docs:
-                raise DeleteError("Failed to delete AppDocs from database.")
-            return tuple_app_docs
-
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_app_docs = session.query(AppDocORM).filter_by(id=values[0]).first()
+                if not orm_app_docs:
+                    raise DeleteError("AppDocs not found.")
+                session.delete(orm_app_docs)
+                return AppDocs._as_tuple(orm_app_docs)
+        except Exception as error:
             raise DeleteError(error)
-        finally:
-            db.close()
 
     @staticmethod
-    def from_tuple(tuple_app_docs):
-        if not tuple_app_docs:
-            return None
+    def get_by_id(app_docs_id: str) -> tuple:
+        with session_scope() as session:
+            orm_app_docs = session.query(AppDocORM).filter_by(id=app_docs_id).first()
+            return AppDocs._as_tuple(orm_app_docs) if orm_app_docs else None
+
+    @staticmethod
+    def get_all() -> list:
+        with session_scope() as session:
+            rows = session.query(AppDocORM).all()
+            return [AppDocs._as_tuple(r) for r in rows]
+
+    @staticmethod
+    def get_by_application_id(application_id: str) -> list:
+        with session_scope() as session:
+            rows = session.query(AppDocORM).filter_by(application_id=application_id).all()
+            return [AppDocs._as_tuple(r) for r in rows]
+
+    @staticmethod
+    def get_by_document_id(document_id: str) -> list:
+        with session_scope() as session:
+            rows = session.query(AppDocORM).filter_by(document_id=document_id).all()
+            return [AppDocs._as_tuple(r) for r in rows]
+
+    @staticmethod
+    def get_by_requirements_id(requirements_id: str) -> list:
+        with session_scope() as session:
+            rows = session.query(AppDocORM).filter_by(requirements_id=requirements_id).all()
+            return [AppDocs._as_tuple(r) for r in rows]
+
+    @staticmethod
+    def get_docs_for_application(application_id: str) -> list:
+        with session_scope() as session:
+            rows = (
+                session.query(
+                    DocumentORM.id.label("document_id"),
+                    FileORM.id.label("file_id"),
+                    DocumentORM.document_type_id,
+                    FileTypeORM.id.label("file_type_id"),
+                    DocumentDataORM.id.label("document_data_id"),
+                    DocumentTypeORM.name.label("document_type_name"),
+                    DocumentORM.last_modified,
+                    DocumentORM.status_id,
+                    StatusORM.name.label("status_name"),
+                    FileORM.filename,
+                    FileORM.filepath,
+                    FileORM.filetype_id,
+                    UserORM.user_id.label("user_id"),
+                    DocumentDataORM.ocr_full_text,
+                )
+                .join(DocumentORM, AppDocORM.document_id == DocumentORM.id)
+                .join(DocumentTypeORM, DocumentORM.document_type_id == DocumentTypeORM.id)
+                .join(FileORM, DocumentORM.file_id == FileORM.id)
+                .join(DocumentDataORM, DocumentORM.document_data_id == DocumentDataORM.id)
+                .join(FileTypeORM, FileORM.filetype_id == FileTypeORM.id)
+                .join(StatusORM, DocumentORM.status_id == StatusORM.id)
+                .join(UserORM, DocumentORM.user_id == UserORM.user_id)
+                .filter(AppDocORM.application_id == application_id)
+                .all()
+            )
+            return [tuple(row) for row in rows]
+
+    @staticmethod
+    def from_tuple(t: tuple):
         return AppDocs(
-            id=tuple_app_docs[0],
-            application_id=tuple_app_docs[1],
-            document_id=tuple_app_docs[2],
-            requirements_id=tuple_app_docs[3]
+            id=t[0],
+            application_id=t[1],
+            document_id=t[2],
+            requirements_id=t[3],
         )
-    
-    @staticmethod
-    def from_json(json_app_docs):
-        if not json_app_docs:
-            return None
-        return AppDocs(
-            id=json_app_docs.get("id", str(uuid4())),
-            application_id=json_app_docs["application_id"],
-            document_id=json_app_docs["document_id"],
-            requirements_id=json_app_docs["requirements_id"]
-        )
-    
-    @staticmethod
-    def get_by_id(app_docs_id: str):
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_APP_DOCS_BY_ID, (app_docs_id,))
-            app_docs_tuple = db.cursor.fetchone()
-            if not app_docs_tuple:
-                return None
-            return app_docs_tuple
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        finally:
-            db.close()
 
     @staticmethod
-    def get_all():
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_ALL_APP_DOCS)
-            app_docs_tuples = db.cursor.fetchall()
-            return app_docs_tuples
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        finally:
-            db.close()
-
-    @staticmethod
-    def get_by_application_id(application_id: str):
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_APP_DOCS_BY_APPLICATION_ID, (application_id,))
-            app_docs_tuples = db.cursor.fetchall()
-            return app_docs_tuples
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        finally:
-            db.close()
-
-    @staticmethod
-    def get_by_document_id(document_id: str):
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_APP_DOCS_BY_DOCUMENT_ID, (document_id,))
-            app_docs_tuples = db.cursor.fetchall()
-            return app_docs_tuples
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        finally:
-            db.close()
-
-    @staticmethod
-    def get_by_requirements_id(requirements_id: str):
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_APP_DOCS_BY_REQUIREMENTS_ID, (requirements_id,))
-            app_docs_tuples = db.cursor.fetchall()
-            return app_docs_tuples
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        finally:
-            db.close()
-
-    @staticmethod
-    def get_docs_for_application(application_id: str):
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_DOCS_FOR_APPLICATION, (application_id,))
-            docs_tuples = db.cursor.fetchall()
-            return docs_tuples
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            raise RecordNotFoundError(error)
-        finally:
-            db.close()
+    def _as_tuple(orm_app_docs: AppDocORM) -> tuple:
+        return (orm_app_docs.id, orm_app_docs.application_id, orm_app_docs.document_id, orm_app_docs.requirements_id)

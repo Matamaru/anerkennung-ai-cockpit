@@ -16,7 +16,8 @@ from backend.datamodule.models.profession import Profession
 from backend.datamodule.models.country import Country
 from backend.datamodule.models.state import State 
 from backend.datamodule.models.application import Application
-from backend.datamodule import db
+from backend.datamodule.orm import AppDoc, Document as DocumentORM, DocumentData, DocumentType, File, Status, Requirement
+from backend.datamodule.sa import session_scope
 
 
 #=== helpers
@@ -49,104 +50,108 @@ def _attach_display_data(applications, professions, countries, states):
 
 def get_documents_for_application(application_id) -> list[Document]:
     """Fetch all documents linked to a given application ID."""
-    query = """
-    SELECT 
-        ad.id AS app_doc_id,
-        ad.application_id,
-        d.id AS document_id,
-        d.file_id,
-        dt.name AS document_type_name,
-        f.filename,
-        f.filepath,
-        doc_data.ocr_full_text,
-        d.status_id,
-        ad.requirements_id
-    FROM _app_docs ad
-    JOIN _documents d ON ad.document_id = d.id
-    JOIN _document_types dt ON d.document_type_id = dt.id
-    JOIN _files f ON d.file_id = f.id
-    JOIN _document_datas doc_data ON d.document_data_id = doc_data.id
-    WHERE ad.application_id = %s
-    """
     try:
-        db.connect()
-        db.cursor.execute(query, (application_id,))
-        doc_tuples = db.cursor.fetchall()
-        if doc_tuples:
-            print(f"Fetched {len(doc_tuples)} documents for application {application_id}")
-            return [Document.from_tuple(dt) for dt in doc_tuples]
-        else:
+        with session_scope() as session:
+            rows = (
+                session.query(
+                    AppDoc.document_id,
+                    DocumentORM.file_id,
+                    DocumentType.name.label("document_type_name"),
+                    File.filename,
+                    File.filepath,
+                    DocumentData.ocr_full_text,
+                    DocumentORM.status_id,
+                    AppDoc.requirements_id,
+                )
+                .join(DocumentORM, AppDoc.document_id == DocumentORM.id)
+                .join(DocumentType, DocumentORM.document_type_id == DocumentType.id)
+                .join(File, DocumentORM.file_id == File.id)
+                .join(DocumentData, DocumentORM.document_data_id == DocumentData.id)
+                .filter(AppDoc.application_id == application_id)
+                .all()
+            )
+            if rows:
+                print(f"Fetched {len(rows)} documents for application {application_id}")
+                return [
+                    {
+                        "document_id": row.document_id,
+                        "file_id": row.file_id,
+                        "document_type_name": row.document_type_name,
+                        "filename": row.filename,
+                        "filepath": row.filepath,
+                        "ocr_full_text": row.ocr_full_text,
+                        "status_id": row.status_id,
+                        "requirements_id": row.requirements_id,
+                    }
+                    for row in rows
+                ]
             print(f"No documents found for application {application_id}")
             return []
     except Exception as e:
         print(f"Error fetching documents for application {application_id}: {e}")
         return []
-    finally:
-        db.close_conn()
 
 
 def get_requirements_for_application(application_id) -> list[dict]:
     """Fetch all requirements linked to a given application ID."""
-    query = """
-    SELECT r.id, r.name, r.description
-    FROM _requirements r
-    JOIN _app_docs ad ON r.id = ad.requirements_id
-    WHERE ad.application_id = %s
-    """
     try:
-        db.connect()
-        db.cursor.execute(query, (application_id,))
-        req_tuples = db.cursor.fetchall()
-        print(f"Requirement tuples in candidate.get_requirements_for_application: {req_tuples}")
-        requirements = []
-        for rt in req_tuples:
-            requirements.append({
-                'id': rt[0],
-                'name': rt[1],
-                'description': rt[2]
-            })
-        print(f"Fetched {len(requirements)} requirements for application {application_id}")
-        return requirements
+        with session_scope() as session:
+            rows = (
+                session.query(Requirement.id, Requirement.name, Requirement.description)
+                .join(AppDoc, Requirement.id == AppDoc.requirements_id)
+                .filter(AppDoc.application_id == application_id)
+                .all()
+            )
+            print(f"Requirement tuples in candidate.get_requirements_for_application: {rows}")
+            requirements = [
+                {"id": rt.id, "name": rt.name, "description": rt.description}
+                for rt in rows
+            ]
+            print(f"Fetched {len(requirements)} requirements for application {application_id}")
+            return requirements
     except Exception as e:
         print(f"Error fetching requirements for application {application_id}: {e}")
         return []
-    finally:
-        db.close_conn()
 
 
 def get_document_details(document_id) -> Document:
     """Fetch detailed information for a specific document by its ID."""
-    query = """
-    SELECT 
-        d.id AS document_id,
-        d.file_id,
-        dt.name AS document_type_name,
-        f.filename,
-        f.filepath,
-        doc_data.ocr_full_text,
-        d.last_modified,
-        d.status_id
-    FROM _documents d
-    JOIN _document_types dt ON d.document_type_id = dt.id
-    JOIN _files f ON d.file_id = f.id
-    JOIN _document_datas doc_data ON d.document_data_id = doc_data.id
-    WHERE d.id = %s
-    """
     try:
-        db.connect()
-        db.cursor.execute(query, (document_id,))
-        doc_tuple = db.cursor.fetchone()
-        if doc_tuple:
-            print(f"Fetched details for document {document_id}")
-            return Document.from_tuple(doc_tuple)
-        else:
+        with session_scope() as session:
+            row = (
+                session.query(
+                    DocumentORM.id.label("document_id"),
+                    DocumentORM.file_id,
+                    DocumentType.name.label("document_type_name"),
+                    File.filename,
+                    File.filepath,
+                    DocumentData.ocr_full_text,
+                    DocumentORM.last_modified,
+                    DocumentORM.status_id,
+                )
+                .join(DocumentType, DocumentORM.document_type_id == DocumentType.id)
+                .join(File, DocumentORM.file_id == File.id)
+                .join(DocumentData, DocumentORM.document_data_id == DocumentData.id)
+                .filter(DocumentORM.id == document_id)
+                .first()
+            )
+            if row:
+                print(f"Fetched details for document {document_id}")
+                return {
+                    "document_id": row.document_id,
+                    "file_id": row.file_id,
+                    "document_type_name": row.document_type_name,
+                    "filename": row.filename,
+                    "filepath": row.filepath,
+                    "ocr_full_text": row.ocr_full_text,
+                    "last_modified": row.last_modified,
+                    "status_id": row.status_id,
+                }
             print(f"No details found for document {document_id}")
             return None
     except Exception as e:
         print(f"Error fetching details for document {document_id}: {e}")
         return None
-    finally:
-        db.close_conn()
 
 #=== Routes
 
@@ -315,42 +320,31 @@ def applicationsmanagement_save():
         selected_id = new_app_tuple[0] if new_app_tuple else None
 
     try:
-        db.connect()
         # Add all requirements for the profession, country and state to the application
         if selected_id:
-            # Fetch all requirements for the selected profession, country, and state
-            req_tuples = db.execute_query(
-                """
-                SELECT id FROM _requirements
-                WHERE profession_id = %s AND country_id = %s AND (state_id = %s OR state_id IS NULL)
-                """,
-                (profession_id, country_id, state_id)
-            )
-            requirement_ids = [rt[0] for rt in req_tuples] if req_tuples else []
-            print(f"Linking requirements {requirement_ids} to application {selected_id}")
-            
-
-            # Clear existing links
-            db.execute_query(
-                """
-                DELETE FROM _app_docs
-                WHERE application_id = %s
-                """,
-                (selected_id,)
-            )
-            # Link each requirement to the application    
-            for req_id in requirement_ids:
-                db.execute_query(
-                    """
-                    INSERT INTO _app_docs (id, application_id, document_id, requirements_id)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (str(uuid4()), selected_id, None, req_id)
+            with session_scope() as session:
+                reqs = (
+                    session.query(Requirement.id)
+                    .filter(
+                        Requirement.profession_id == profession_id,
+                        Requirement.country_id == country_id,
+                        (Requirement.state_id == state_id) | (Requirement.state_id.is_(None)),
+                    )
+                    .all()
                 )
+                requirement_ids = [rt.id for rt in reqs] if reqs else []
+                print(f"Linking requirements {requirement_ids} to application {selected_id}")
+
+                session.query(AppDoc).filter_by(application_id=selected_id).delete()
+                for req_id in requirement_ids:
+                    session.add(AppDoc(
+                        id=str(uuid4()),
+                        application_id=selected_id,
+                        document_id=None,
+                        requirements_id=req_id,
+                    ))
     except Exception as e:
         print(f"Error linking requirements to application {selected_id}: {e}")
-    finally:
-        db.close_conn()
 
     return redirect(url_for("candidate.applicationsmanagement_detail", app_id=selected_id))
 

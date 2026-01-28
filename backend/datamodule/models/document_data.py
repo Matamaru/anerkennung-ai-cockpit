@@ -5,28 +5,25 @@
 #	Version:	    0.0.1									                *
 #****************************************************************************
 
-#=== Imports
 from uuid import uuid4
-from backend.datamodule.models.basemodel import *
-from backend.datamodule.models.document_data_sql import *
-from backend.datamodule import db
-import psycopg2 
+import json
 
-#=== Document Data Model
+from backend.datamodule.models.basemodel import *
+from backend.datamodule.orm import DocumentData as DocumentDataORM
+from backend.datamodule.sa import session_scope
+
 
 class DocumentData(Model):
-    def __init__(self, 
-                 id: str = None, 
-                 ocr_doc_type_prediction: str = None, 
-                 ocr_predictions_str: str = None, 
-                 ocr_full_text: str = None, 
-                 ocr_extracted_data: dict = None, 
-                 layoutlm_full_text: str = None, 
-                 layout_lm_data: dict = None):
-        if id:
-            self.id = id
-        else:
-            self.id = str(uuid4())
+    def __init__(
+            self, 
+            ocr_doc_type_prediction: str = None, 
+            ocr_predictions_str: str = None, 
+            ocr_full_text: str = None, 
+            ocr_extracted_data: dict = None, 
+            layoutlm_full_text: str = None,
+            layout_lm_data: dict = None,
+            id: str = None):
+        self.id = id or str(uuid4())
         self.ocr_doc_type_prediction_str = ocr_doc_type_prediction
         self.ocr_predictions_str = ocr_predictions_str
         self.ocr_full_text = ocr_full_text
@@ -34,139 +31,106 @@ class DocumentData(Model):
         self.layoutlm_full_text = layoutlm_full_text
         self.layout_lm_data = layout_lm_data
 
-    def __repr__(self):
-        return f"<DocumentData id={self.id}>"
-    
     def insert(self) -> tuple:
         values = (
             self.id,
             self.ocr_doc_type_prediction_str,
             self.ocr_predictions_str,
             self.ocr_full_text,
-            json.dumps(self.ocr_extracted_data) if self.ocr_extracted_data else None,
+            self.ocr_extracted_data,
             self.layoutlm_full_text,
-            json.dumps(self.layout_lm_data) if self.layout_lm_data else None
+            self.layout_lm_data,
         )
         try:
-            db.connect()
-            # Execute insert
-            db.cursor.execute(INSERT_DOCUMENT_DATA, values)
-            tuple_document_data = db.cursor.fetchone()
-
-            if tuple_document_data:
-                return tuple_document_data
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_dd = DocumentDataORM(
+                    id=self.id,
+                    ocr_doc_type_prediction_str=self.ocr_doc_type_prediction_str,
+                    ocr_predictions_str=self.ocr_predictions_str,
+                    ocr_full_text=self.ocr_full_text,
+                    ocr_extracted_data=self.ocr_extracted_data,
+                    layoutlm_full_text=self.layoutlm_full_text,
+                    layout_lm_data=self.layout_lm_data,
+                )
+                session.add(orm_dd)
+                session.flush()
+                return DocumentData._as_tuple(orm_dd)
+        except Exception as error:
             raise InsertError(error)
 
-        finally:
-            db.close_conn()
-        
     def update(self, values: tuple) -> tuple:
         try:
-            db.connect()
-            # Execute update
-            db.cursor.execute(UPDATE_DOCUMENT_DATA, values)
-            tuple_document_data = db.cursor.fetchone()
-
-            if not tuple_document_data:
-                raise UpdateError("Failed to update document data in database.")
-            
-            return tuple_document_data
-
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_dd = session.query(DocumentDataORM).filter_by(id=values[6]).first()
+                if not orm_dd:
+                    raise UpdateError("Document data not found.")
+                orm_dd.ocr_doc_type_prediction_str = values[0]
+                orm_dd.ocr_predictions_str = values[1]
+                orm_dd.ocr_full_text = values[2]
+                orm_dd.ocr_extracted_data = values[3]
+                orm_dd.layoutlm_full_text = values[4]
+                orm_dd.layout_lm_data = values[5]
+                session.flush()
+                return DocumentData._as_tuple(orm_dd)
+        except Exception as error:
             raise UpdateError(error)
 
-        finally:
-            db.close_conn()
-
-    def delete(self) -> tuple:
-        value = (self.id,)
+    def delete(self, value: tuple) -> tuple:
         try:
-            db.connect()
-            # Execute delete
-            db.cursor.execute(DELETE_DOCUMENT_DATA, value)
-            tuple_document_data = db.cursor.fetchone()
-
-            if not tuple_document_data:
-                raise DeleteError("Failed to delete document data from database.")
-            
-            return self.id
-
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_dd = session.query(DocumentDataORM).filter_by(id=value[0]).first()
+                if not orm_dd:
+                    raise DeleteError("Document data not found.")
+                session.delete(orm_dd)
+                return DocumentData._as_tuple(orm_dd)
+        except Exception as error:
             raise DeleteError(error)
 
-        finally:
-            db.close_conn()
+    @staticmethod
+    def get_by_id(document_data_id: str) -> tuple:
+        with session_scope() as session:
+            orm_dd = session.query(DocumentDataORM).filter_by(id=document_data_id).first()
+            return DocumentData._as_tuple(orm_dd) if orm_dd else None
+
+    @staticmethod
+    def get_all() -> list:
+        with session_scope() as session:
+            items = session.query(DocumentDataORM).all()
+            return [DocumentData._as_tuple(i) for i in items]
 
     @staticmethod
     def from_tuple(tuple_data: tuple):
-        """
-        Create a DocumentData object from a tuple
-        :param tuple_data: tuple of data
-        :return: DocumentData object
-        """
         if tuple_data:
             return DocumentData(
                 id=tuple_data[0],
-                ocr_doc_type_prediction_str=tuple_data[1],
+                ocr_doc_type_prediction=tuple_data[1],
                 ocr_predictions_str=tuple_data[2],
                 ocr_full_text=tuple_data[3],
                 ocr_extracted_data=tuple_data[4],
                 layoutlm_full_text=tuple_data[5],
-                layout_lm_data=tuple_data[6]
+                layout_lm_data=tuple_data[6],
             )
-        else:
-            return None
+        return None
 
     @staticmethod
-    def from_json(json_data: str):
-        """
-        Create a DocumentData object from a json
-        :param json_data: json of data
-        :return: DocumentData object
-        """
-        data = json.loads(json_data)
+    def from_dict(data: dict):
         return DocumentData(
-            id=data.get("id"),
-            ocr_doc_type_prediction_str=data.get("ocr_doc_type_prediction_str"),
+            ocr_doc_type_prediction=data.get("ocr_doc_type_prediction_str"),
             ocr_predictions_str=data.get("ocr_predictions_str"),
             ocr_full_text=data.get("ocr_full_text"),
             ocr_extracted_data=data.get("ocr_extracted_data"),
             layoutlm_full_text=data.get("layoutlm_full_text"),
-            layout_lm_data=data.get("layout_lm_data")
+            layout_lm_data=data.get("layout_lm_data"),
         )
-    
-    @staticmethod
-    def get_by_id(document_data_id: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_DOCUMENT_DATA_BY_ID, (document_data_id,))
-            tuple_document_data = db.cursor.fetchone()
-
-            if not tuple_document_data:
-                return None
-            
-            return DocumentData.from_tuple(tuple_document_data)
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
 
     @staticmethod
-    def get_all() -> tuple:
-        try:
-            db.connect()
-            # Execute select all
-            db.cursor.execute(SELECT_ALL_DOCUMENT_DATA)
-            tuples_document_data = db.cursor.fetchall()
-
-            return tuples_document_data
-
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-
-        finally:
-            db.close_conn()
-
-    
+    def _as_tuple(orm_dd: DocumentDataORM) -> tuple:
+        return (
+            orm_dd.id,
+            orm_dd.ocr_doc_type_prediction_str,
+            orm_dd.ocr_predictions_str,
+            orm_dd.ocr_full_text,
+            orm_dd.ocr_extracted_data,
+            orm_dd.layoutlm_full_text,
+            orm_dd.layout_lm_data,
+        )

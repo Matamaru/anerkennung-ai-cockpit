@@ -1,19 +1,16 @@
 #****************************************************************************
 #   Application:	Anerkennung AI Cockpit							        *
-#	Module:		    backend.datamodule.models.role                          *
+#	Module:		    backend.datamodule.models.state                          *
 #	Author:		    Heiko Matamaru, IGS    						            *
 #	Version:	    0.0.1									                *
 #****************************************************************************
 
-#=== Imports
 from uuid import uuid4
 
-import psycopg2
 from backend.datamodule.models.basemodel import *
-from backend.datamodule.models.country import Country
-from backend.datamodule.models.country_sql import SELECT_COUNTRY_BY_CODE
-from backend.datamodule.models.state_sql import *
-from backend.datamodule import db
+from backend.datamodule.orm import Country as CountryORM, State as StateORM
+from backend.datamodule.sa import session_scope
+
 
 class State(Model):
     def __init__(self, 
@@ -22,10 +19,7 @@ class State(Model):
                  name: str = None, 
                  abbreviation: str = None, 
                  description: str = None):
-        if id:
-            self.id = id
-        else:
-            self.id = str(uuid4())
+        self.id = id or str(uuid4())
         self.country_id = country_id
         self.name = name
         self.abbreviation = abbreviation
@@ -35,123 +29,73 @@ class State(Model):
         return f"<State name={self.name} abbreviation={self.abbreviation}>"
     
     def insert(self) -> tuple:
-        values = (self.id, self.country_id, self.name, self.abbreviation, self.description)
         try:
-            db.connect()
-            # check if state with same name already exists
-            db.cursor.execute(SELECT_STATE_BY_NAME, (self.name,))
-            existing_state = db.cursor.fetchone()
-            if existing_state:
-                raise InsertError(f"State with name '{self.name}' already exists in database.")
-                return None
-
-            # Execute insert
-            db.cursor.execute(INSERT_STATE, values)
-            tuple_state = db.cursor.fetchone()
-
-            if not tuple_state:
-                raise InsertError("Failed to insert state into database.")
-            
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                existing = session.query(StateORM).filter_by(name=self.name).first()
+                if existing:
+                    raise InsertError(f"State with name '{self.name}' already exists in database.")
+                orm_state = StateORM(
+                    id=self.id,
+                    country_id=self.country_id,
+                    name=self.name,
+                    abbreviation=self.abbreviation,
+                    description=self.description,
+                )
+                session.add(orm_state)
+                session.flush()
+                return State._as_tuple(orm_state)
+        except Exception as error:
             raise InsertError(error)
-
-        finally:
-            db.close_conn()
-            return tuple_state
             
     def update(self, values: tuple) -> tuple:
         try:
-            db.connect()
-            # Execute update
-            db.cursor.execute(UPDATE_STATE, values)
-            tuple_state = db.cursor.fetchone()
-
-            if not tuple_state:
-                raise UpdateError("Failed to update state in database.")
-            
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_state = session.query(StateORM).filter_by(id=values[4]).first()
+                if not orm_state:
+                    raise UpdateError("Failed to update state in database.")
+                orm_state.country_id = values[0]
+                orm_state.name = values[1]
+                orm_state.abbreviation = values[2]
+                orm_state.description = values[3]
+                session.flush()
+                return State._as_tuple(orm_state)
+        except Exception as error:
             raise UpdateError(error)
-        finally:
-            db.close_conn()
-            return tuple_state
 
     def delete(self):
         try:
-            db.connect()
-            # Execute delete
-            db.cursor.execute(DELETE_STATE, (self.id,))
-        
-        except (Exception, psycopg2.DatabaseError) as error:
+            with session_scope() as session:
+                orm_state = session.query(StateORM).filter_by(id=self.id).first()
+                if not orm_state:
+                    raise DeleteError("State not found.")
+                session.delete(orm_state)
+                return self.id
+        except Exception as error:
             raise DeleteError(error)
-        finally:
-            db.close_conn()
-            return self.id
         
     @staticmethod
     def get_by_id(state_id: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_STATE_BY_ID, (state_id,))
-            state_tuple = db.cursor.fetchone()
-
-            if not state_tuple:
-                return None
-            
-            return state_tuple
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
+        with session_scope() as session:
+            orm_state = session.query(StateORM).filter_by(id=state_id).first()
+            return State._as_tuple(orm_state) if orm_state else None
 
     @staticmethod
     def get_by_name(name: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_STATE_BY_NAME, (name,))
-            state_tuple = db.cursor.fetchone()
-
-            if not state_tuple:
-                return None
-            
-            return state_tuple
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
+        with session_scope() as session:
+            orm_state = session.query(StateORM).filter_by(name=name).first()
+            return State._as_tuple(orm_state) if orm_state else None
 
     @staticmethod
     def get_by_code(code: str) -> tuple:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_STATE_BY_ABBREVIATION, (code,))
-            state_tuple = db.cursor.fetchone()
-
-            if not state_tuple:
-                return None
-            
-            return state_tuple
-            
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
+        with session_scope() as session:
+            orm_state = session.query(StateORM).filter_by(abbreviation=code).first()
+            return State._as_tuple(orm_state) if orm_state else None
 
     @staticmethod
     def get_all() -> list:
-        try:
-            db.connect()
-            # Execute select
-            db.cursor.execute(SELECT_ALL_STATES)
-            states_tuple = db.cursor.fetchall()
-
-            return states_tuple
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-        finally:
-            db.close_conn()
+        with session_scope() as session:
+            states = session.query(StateORM).all()
+            return [State._as_tuple(s) for s in states]
 
     @staticmethod   
     def from_json(data: dict):
@@ -175,29 +119,14 @@ class State(Model):
 
     @staticmethod
     def state_in_db(name: str):
-        """
-        Check if state with given name exists in db
-        :param name: name of state
-        :return: (bool, State-ID or None)
-        """
-        state = State.select_where_column_equals(
-            sql_select_model = SELECT_ALL_STATES, 
-            column = 'name', 
-            value = name)
-        if state:
-            return True, state[0]
-        else:
+        with session_scope() as session:
+            orm_state = session.query(StateORM).filter_by(name=name).first()
+            if orm_state:
+                return True, State._as_tuple(orm_state)
             return False, None
         
     @staticmethod
     def create_default_states():
-        """
-        Create default states in db
-        :return: None
-        """
-
-        # set of default states
-        # ISO 3166-2:DE
         default_states = [
             {
                "name": "Bavaria",
@@ -218,46 +147,30 @@ class State(Model):
                "country_code": "DE"
            }
         ]
- 
-#        print(f"States: {default_states}")
 
         try:
-            db.connect()
-            for state in default_states:
-#                print(f"Processing state: {state['name']}")
-                # Check if state already exists
-                values = (state["name"],)
-                db.cursor.execute(SELECT_STATE_BY_NAME, values)
-                tuple_state = db.cursor.fetchone()
-
-                # Get country id for country code 'DE'
-                country_code = state["country_code"]    
-                try:
-                    db.cursor.execute(SELECT_COUNTRY_BY_CODE, (country_code,))
-                    country_tuple = db.cursor.fetchone()
-                    if country_tuple:
-                        country_id = country_tuple[0]
-                        #print(f"Country ID for '{country_code}': {country_id}")
+            with session_scope() as session:
+                for state in default_states:
+                    existing = session.query(StateORM).filter_by(name=state["name"]).first()
+                    country = session.query(CountryORM).filter_by(code=state["country_code"]).first()
+                    if not country:
+                        print(f"Country with code '{state['country_code']}' not found. Cannot create default states.")
+                        continue
+                    if not existing:
+                        orm_state = StateORM(
+                            id=str(uuid4()),
+                            country_id=country.id,
+                            name=state["name"],
+                            abbreviation=state["abbreviation"],
+                            description=state["description"],
+                        )
+                        session.add(orm_state)
+                        print(f"Inserted default state: {state['name']}")
                     else:
-                        print(f"Country with code '{country_code}' not found. Cannot create default states.")
-                except Exception as e:
-                        print(f"Error retrieving country with code '{country_code}': {e}")
-                
-                # Insert state if it does not exist
-                if not tuple_state:
-                    new_state = State(
-                        id=str(uuid4()),
-                        country_id=country_id,
-                        name=state["name"],
-                        abbreviation=state["abbreviation"],
-                        description=state["description"]
-                    )
-                    values = (new_state.id, new_state.country_id, new_state.name, new_state.abbreviation, new_state.description)
-                    db.cursor.execute(INSERT_STATE, values)
-                    print(f"Inserted default state: {state['name']}")
-                else:
-                    print(f"State '{state['name']}' already exists.")
-        except (Exception, psycopg2.DatabaseError) as error:
+                        print(f"State '{state['name']}' already exists.")
+        except Exception as error:
             print(f"Error creating default states: {error}")
-        finally:
-            db.close_conn()
+
+    @staticmethod
+    def _as_tuple(orm_state: StateORM) -> tuple:
+        return (orm_state.id, orm_state.country_id, orm_state.name, orm_state.abbreviation, orm_state.description)

@@ -1,10 +1,10 @@
-import psycopg2
 import os
 import json
 import logging
 from dataclasses import dataclass
 
-from backend.datamodule import db
+from sqlalchemy import text
+from backend.datamodule.sa import engine
 
 #=== Logger
 # create logger path if not existing
@@ -34,7 +34,7 @@ class DatabaseConnectionError(Exception):
     def __init__(self, error):
         self.error = error 
         self.result['error'] = self.error
-        self.result['message'] = self.result['message'] + ': ' + str(self.error)
+        self.result['message'] = f"Database connection error: {self.error}"
         logger.error(self.result['message'])
         return json.dumps(self.result)
 
@@ -149,27 +149,21 @@ class Model(object):
     ### static methods ###
     @staticmethod
     def select_all(sql_select_model: str) -> tuple:
-        db.connect()
         try:
-            db.cursor.execute(sql_select_model)
-            result = db.cursor.fetchall()
-            return result
-        except (Exception, psycopg2.DatabaseError) as error:
+            with engine.connect() as conn:
+                result = conn.execute(text(sql_select_model)).fetchall()
+                return result
+        except Exception as error:
             print(error)
-        finally:
-            db.close_conn()
 
     @staticmethod
     def select_columns(sql_select_model: str, values: tuple) -> tuple:
-        db.connect()
         try:
-            db.cursor.execute(sql_select_model, values)
-            result = db.cursor.fetchall()
-            return result
-        except (Exception, psycopg2.DatabaseError) as error:
+            with engine.connect() as conn:
+                result = conn.execute(text(sql_select_model), values).fetchall()
+                return result
+        except Exception as error:
             print(error)
-        finally:
-            db.close_conn()
 
     @staticmethod
     def select_where_column_equals(
@@ -177,32 +171,22 @@ class Model(object):
             column: str, 
             value: str) -> tuple:
         try:
-            db.connect()
-        except (Exception, psycopg2.DatabaseError) as error:    
-            raise DatabaseConnectionError(error)
-        finally:
-            try:
-                sql = sql_select_model + f" WHERE {column} = %s"
-                db.cursor.execute(sql, (value,))
-                result = db.cursor.fetchall()
+            sql = sql_select_model + f" WHERE {column} = :value"
+            with engine.connect() as conn:
+                result = conn.execute(text(sql), {"value": value}).fetchall()
                 return result
-            except (Exception, psycopg2.DatabaseError) as error:
-                print(error)
-            finally:
-                db.close_conn()
+        except Exception as error:
+            print(error)
 
     @staticmethod
     def select_where_column_like(
             sql_select_model: str, 
             column: str, 
             value: str) -> tuple:
-        db.connect()
         try:
-            sql = sql_select_model + f" WHERE {column} LIKE %s"
-            db.cursor.execute(sql, (value,))
-            result = db.cursor.fetchall()
-            return result
-        except (Exception, psycopg2.DatabaseError) as error:
+            sql = sql_select_model + f" WHERE {column} LIKE :value"
+            with engine.connect() as conn:
+                result = conn.execute(text(sql), {"value": value}).fetchall()
+                return result
+        except Exception as error:
             print(error)
-        finally:
-            db.close_conn()
