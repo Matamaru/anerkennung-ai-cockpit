@@ -7,6 +7,7 @@
 
 #=== Imports
 from uuid import uuid4
+from types import SimpleNamespace
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from backend.datamodule.models.document import Document
@@ -27,6 +28,7 @@ from backend.datamodule.sa import session_scope
 from backend.services.ocr import analyze_bytes_with_layoutlm_fields
 from werkzeug.utils import secure_filename
 import os
+import requests
 
 
 #=== helpers
@@ -208,8 +210,21 @@ def document_management():
         filetype_tuple = FileType.get_by_name(filetype_name)
         filetype = FileType.from_tuple(filetype_tuple) if filetype_tuple else None
 
-        token_model_dir = _select_token_model_dir(doc_type_name)
-        ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
+        doc_hint = _doc_hint_from_requirement(requirement_id)
+        token_model_dir = _select_token_model_dir(doc_hint)
+        ocr_service_url = os.getenv("OCR_SERVICE_URL")
+        ocr_res = None
+        fields = {}
+        if ocr_service_url:
+            try:
+                remote = _call_ocr_service(ocr_service_url, file_bytes, filename, doc_hint)
+                fields = remote.get("fields", remote)
+                ocr_res = _coerce_remote_ocr(remote)
+            except Exception:
+                current_app.logger.warning("OCR service failed; using local OCR.", exc_info=True)
+                ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
+        if ocr_res is None:
+            ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
         doc_type_name = _map_doc_type(ocr_res.doc_type, requirement_id)
         doc_type_tuple = DocumentTypeModel.get_by_name(doc_type_name) if doc_type_name else None
         doc_type = DocumentTypeModel.from_tuple(doc_type_tuple) if doc_type_tuple else None
@@ -341,6 +356,19 @@ def _map_doc_type(doc_type: str, requirement_id: str) -> str | None:
     return None
 
 
+def _doc_hint_from_requirement(requirement_id: str) -> str | None:
+    req_tuple = Requirements.get_by_id(requirement_id)
+    req = Requirements.from_tuple(req_tuple) if req_tuple else None
+    if not req or not req.name:
+        return None
+    name = req.name.lower()
+    if "id" in name or "passport" in name:
+        return "passport"
+    if "qualification" in name or "diploma" in name or "certificate" in name or "transcript" in name:
+        return "diploma"
+    return None
+
+
 def _select_token_model_dir(doc_type_name: str | None) -> str | None:
     if not doc_type_name:
         return os.getenv("CAESAR_LAYOUTLM_TOKEN_MODEL_DIR")
@@ -349,6 +377,27 @@ def _select_token_model_dir(doc_type_name: str | None) -> str | None:
     if "diploma" in doc_type_name.lower():
         return os.getenv("CAESAR_DIPLOMA_TOKEN_MODEL_DIR") or os.getenv("CAESAR_LAYOUTLM_TOKEN_MODEL_DIR")
     return os.getenv("CAESAR_LAYOUTLM_TOKEN_MODEL_DIR")
+
+
+def _call_ocr_service(base_url: str, file_bytes: bytes, filename: str, doc_hint: str | None) -> dict:
+    url = base_url.rstrip("/") + "/analyze"
+    params = {}
+    if doc_hint:
+        params["doc_hint"] = doc_hint
+    files = {"file": (filename, file_bytes)}
+    resp = requests.post(url, params=params, files=files, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    if not isinstance(data, dict):
+        raise ValueError("OCR service response must be JSON object")
+    return data
+
+
+def _coerce_remote_ocr(remote: dict) -> SimpleNamespace:
+    doc_type = remote.get("doc_type") or remote.get("document_type") or "unknown"
+    ocr_text = remote.get("ocr_text") or remote.get("text") or remote.get("full_text") or ""
+    predictions = remote.get("predictions") or remote.get("labels") or []
+    return SimpleNamespace(doc_type=doc_type, ocr_text=ocr_text, predictions=predictions)
 
 
 

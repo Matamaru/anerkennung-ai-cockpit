@@ -41,6 +41,7 @@ dependencies = [
   "python-dateutil==2.9.0.post0",
   "python-dotenv==1.0.1",
   "pytz==2025.2",
+  "requests==2.32.3",
   "scikit-image==0.25.2",
   "scikit-learn==1.7.2",
   "scipy==1.16.3",
@@ -52,6 +53,7 @@ dependencies = [
   "tzdata==2025.2",
   "Werkzeug==3.1.3",
   "WTForms==3.2.1",
+  "boto3==1.34.162",
   "caesar-ocr @ git+https://github.com/Matamaru/caesar_ocr.git@main",
 ]
 

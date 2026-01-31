@@ -39,11 +39,9 @@ class DataBase:
 		self.conn.autocommit = True
 
 	def close_conn(self):
-		cursor = getattr(self, "cursor", None)
-		conn = getattr(self, "conn", None)
-		if cursor is not None:
+		if self.cursor is not None:
 			self.cursor.close()
-		if conn is not None:
+		if self.conn is not None:
 			self.conn.close()
 #		print('Connection to database closed.')
 
