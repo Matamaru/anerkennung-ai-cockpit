@@ -57,7 +57,11 @@ def candidate_management():
         applications = []
         documents = []
         if selected_user_id:
-            selected_user = session.query(UserORM).filter_by(user_id=selected_user_id).first()
+            selected_user = (
+                session.query(UserORM.user_id, UserORM.username, UserORM.email)
+                .filter_by(user_id=selected_user_id)
+                .first()
+            )
             applications = (
                 session.query(
                     ApplicationORM.id,
