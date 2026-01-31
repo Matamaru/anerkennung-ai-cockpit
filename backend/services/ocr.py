@@ -562,11 +562,26 @@ def _extract_mrz_from_text(ocr_text: str) -> dict:
                     return {}
 
     mrz_lines = [_normalize_mrz_line(l) for l in mrz_lines]
-    checksum_ok = _mrz_checksum_ok(mrz_lines[1])
+    checksum_ok = _mrz_checksum_ok(mrz_lines[1]) if len(mrz_lines) > 1 else False
 
     parsed = _parse_mrz_lines(mrz_lines)
     if not parsed:
-        return {}
+        # Loose fallback: try to detect MRZ lines by pattern and pad to length.
+        candidates = [ln for ln in lines if "P<" in ln.replace(" ", "")]
+        if len(candidates) >= 1:
+            l1 = _normalize_mrz_line(candidates[0])
+            line2_candidates = [ln for ln in lines if sum(ch.isdigit() for ch in ln) >= 10 and "<" in ln]
+            l2_raw = line2_candidates[0] if line2_candidates else (candidates[1] if len(candidates) > 1 else "")
+            l2 = _normalize_mrz_line(l2_raw)
+            if l1 and l2:
+                if len(l1) < 44:
+                    l1 = l1.ljust(44, "<")
+                if len(l2) < 44:
+                    l2 = l2.ljust(44, "<")
+                parsed = _parse_mrz_lines([l1, l2])
+        if not parsed:
+            return {}
+
     parsed["mrz_checksum_ok"] = checksum_ok
     return parsed
 
