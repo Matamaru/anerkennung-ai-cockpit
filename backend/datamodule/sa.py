@@ -108,6 +108,31 @@ def _ensure_document_review_columns() -> None:
 
 _ensure_document_review_columns()
 
+def _ensure_document_ocr_source_column() -> None:
+    try:
+        with engine.begin() as conn:
+            if conn.dialect.name == "sqlite":
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(_document_datas)")).fetchall()]
+                if "ocr_source" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN ocr_source TEXT"))
+            else:
+                cols = {
+                    row[0]
+                    for row in conn.execute(
+                        text(
+                            "SELECT column_name FROM information_schema.columns "
+                            "WHERE table_name = '_document_datas'"
+                        )
+                    ).fetchall()
+                }
+                if "ocr_source" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN ocr_source TEXT"))
+    except Exception:
+        pass
+
+
+_ensure_document_ocr_source_column()
+
 
 def _ensure_user_profile_table() -> None:
     try:

@@ -495,9 +495,22 @@ def _postprocess_passport_fields(fields: dict) -> dict:
     Normalize MRZ fields from token labels (YYMMDD -> YYYY-MM-DD) and
     derive human-friendly data when possible.
     """
+    def _fix_digit_like(val: str) -> str:
+        if not val:
+            return val
+        table = str.maketrans({"O": "0", "I": "1", "L": "1", "Z": "2", "S": "5", "B": "8"})
+        return val.upper().translate(table)
+
+    def _fix_alpha_like(val: str) -> str:
+        if not val:
+            return val
+        table = str.maketrans({"0": "O", "1": "I", "2": "Z", "5": "S", "8": "B"})
+        return val.upper().translate(table)
+
     def _yyMMdd_to_iso(val: str) -> str:
         if not val:
             return val
+        val = _fix_digit_like(val)
         digits = "".join(ch for ch in val if ch.isdigit())
         if len(digits) != 6:
             return val
@@ -508,9 +521,16 @@ def _postprocess_passport_fields(fields: dict) -> dict:
         century = 2000 if yy <= 29 else 1900
         return f"{century + yy:04d}-{mm}-{dd}"
 
+    for key in ("birth_date_raw", "expiry_date_raw"):
+        if key in fields and fields[key]:
+            fields[key] = _fix_digit_like(fields[key])
+
     for key in ("birth_date", "expiry_date"):
-        if key in fields:
+        if key in fields and fields[key]:
             fields[key] = _yyMMdd_to_iso(fields[key])
+        raw_key = f"{key}_raw"
+        if (key not in fields or not fields[key]) and raw_key in fields:
+            fields[key] = _yyMMdd_to_iso(fields[raw_key])
 
     # Compose full name if parts exist
     if "surname" in fields or "given_names" in fields:
@@ -522,7 +542,27 @@ def _postprocess_passport_fields(fields: dict) -> dict:
 
     # Normalize sex field
     if "sex" in fields:
-        fields["sex"] = fields["sex"].strip().upper()
+        fields["sex"] = fields["sex"].strip().upper().replace("0", "O")
+
+    for key in ("issuing_country", "nationality"):
+        if key in fields and fields[key]:
+            cleaned = _fix_alpha_like(fields[key])
+            cleaned = "".join(ch for ch in cleaned if "A" <= ch <= "Z")
+            if len(cleaned) >= 3:
+                fields[key] = cleaned[:3]
+
+    if "passport_number" in fields and fields["passport_number"]:
+        pn = fields["passport_number"].upper().replace("<", "")
+        if not re.fullmatch(r"[A-Z0-9]{6,9}", pn):
+            pn_alt = _fix_digit_like(pn)
+            if re.fullmatch(r"[A-Z0-9]{6,9}", pn_alt):
+                pn = pn_alt
+        fields["passport_number"] = pn
+
+    if "mrz_line1" in fields and fields["mrz_line1"]:
+        fields["mrz_line1"] = _normalize_mrz_line(fields["mrz_line1"])
+    if "mrz_line2" in fields and fields["mrz_line2"]:
+        fields["mrz_line2"] = _normalize_mrz_line(fields["mrz_line2"], numeric=True)
 
     return fields
 

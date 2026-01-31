@@ -86,6 +86,7 @@ class DocumentData(Base):
     ocr_predictions_str: Mapped[str | None] = mapped_column(Text)
     ocr_full_text: Mapped[str | None] = mapped_column(Text)
     ocr_extracted_data: Mapped[dict | None] = mapped_column(JSON)
+    ocr_source: Mapped[str | None] = mapped_column(String(50))
     layoutlm_full_text: Mapped[str | None] = mapped_column(Text)
     layout_lm_data: Mapped[dict | None] = mapped_column(JSON)
     review_status: Mapped[str | None] = mapped_column(String(50))

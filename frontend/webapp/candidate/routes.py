@@ -168,6 +168,7 @@ def get_document_details(document_id) -> Document:
                     File.filepath,
                     DocumentDataORM.ocr_full_text,
                     DocumentDataORM.ocr_extracted_data,
+                    DocumentDataORM.ocr_source,
                     DocumentDataORM.review_status,
                     DocumentDataORM.review_comment,
                     DocumentDataORM.reviewed_by,
@@ -193,6 +194,7 @@ def get_document_details(document_id) -> Document:
                     "filepath": row.filepath,
                     "ocr_full_text": row.ocr_full_text,
                     "ocr_extracted_data": row.ocr_extracted_data or {},
+                    "ocr_source": row.ocr_source,
                     "review_status": row.review_status,
                     "review_comment": row.review_comment,
                     "reviewed_by": row.reviewed_by,
@@ -311,6 +313,7 @@ def document_management():
             ocr_predictions_str="\n".join(ocr_res.predictions) if isinstance(ocr_res.predictions, list) else ocr_res.predictions,
             ocr_full_text=ocr_res.ocr_text,
             ocr_extracted_data=fields,
+            ocr_source=ocr_source,
         )
         dd_tuple = dd.insert()
 
@@ -665,15 +668,15 @@ def _document_form_schema(doc_type_name: str | None) -> list[dict]:
         return [
             {"key": "holder_first_name", "label": "First Name(s)", "source_keys": ["holder_first_name"]},
             {"key": "holder_last_name", "label": "Last Name", "source_keys": ["holder_last_name"]},
-            {"key": "holder_name", "label": "Full Name", "source_keys": ["holder_name", "holder_name_guess"]},
+            {"key": "holder_name", "label": "Full Name", "source_keys": ["holder_name", "holder_name_guess", "holder_full_name"]},
             {"key": "holder_birth_name", "label": "Birth/Former Name", "source_keys": ["holder_birth_name"]},
-            {"key": "institution_name", "label": "Institution", "source_keys": ["institution_name", "institution", "institution_guess"]},
+            {"key": "institution_name", "label": "Institution", "source_keys": ["institution_name", "institution", "institution_guess", "institution_label"]},
             {"key": "degree_type", "label": "Degree Type", "source_keys": ["degree_type", "degree_type_guess"]},
-            {"key": "program_or_field", "label": "Program / Field", "source_keys": ["program_or_field"]},
+            {"key": "program_or_field", "label": "Program / Field", "source_keys": ["program_or_field", "program_guess", "field_of_study"]},
             {"key": "graduation_status", "label": "Graduation Status", "source_keys": ["graduation_status"]},
-            {"key": "graduation_date", "label": "Graduation Date", "source_keys": ["graduation_date", "dates", "dates_detected"]},
-            {"key": "location", "label": "Location", "source_keys": ["location"]},
-            {"key": "diploma_number", "label": "Diploma Number", "source_keys": ["diploma_number"]},
+            {"key": "graduation_date", "label": "Graduation Date", "source_keys": ["graduation_date", "issue_date_guess", "dates", "dates_detected"]},
+            {"key": "location", "label": "Location", "source_keys": ["location", "location_guess"]},
+            {"key": "diploma_number", "label": "Diploma Number", "source_keys": ["diploma_number", "diploma_number_guess"]},
         ]
     return []
 

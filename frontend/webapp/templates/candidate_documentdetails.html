@@ -34,6 +34,9 @@
       <dt class="col-sm-3">OCR Text</dt>
       <dd class="col-sm-9">{{ document.ocr_full_text }}</dd>
 
+      <dt class="col-sm-3">OCR Source</dt>
+      <dd class="col-sm-9">{{ document.ocr_source or "unknown" }}</dd>
+
       <dt class="col-sm-3">Status</dt>
       <dd class="col-sm-9">
         <span class="badge {% if document.status_name == 'approved' %}bg-success{% elif document.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
