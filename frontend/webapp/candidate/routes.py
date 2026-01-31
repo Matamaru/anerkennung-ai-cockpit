@@ -25,7 +25,12 @@ from backend.datamodule.models.status import Status
 from backend.datamodule.models.document_type import DocumentType as DocumentTypeModel
 from backend.datamodule.orm import AppDoc, Document as DocumentORM, DocumentData as DocumentDataORM, DocumentType, File, Status as StatusORM, Requirement
 from backend.datamodule.sa import session_scope
-from backend.services.ocr import analyze_bytes_with_layoutlm_fields
+from backend.services.ocr import (
+    analyze_bytes_with_layoutlm_fields,
+    _extract_mrz_from_text,
+    _postprocess_passport_fields,
+    extract_diploma_fields,
+)
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import re
@@ -245,7 +250,17 @@ def document_management():
         if not fields:
             current_app.logger.warning("OCR extracted fields are empty for %s", filename)
             if ocr_text:
-                fields = {"ocr_text": ocr_text}
+                mrz_fields = _extract_mrz_from_text(ocr_text)
+                if mrz_fields:
+                    fields = _postprocess_passport_fields(mrz_fields)
+                    current_app.logger.info("OCR fallback extracted MRZ fields for %s", filename)
+                elif doc_hint in ("diploma", "degree"):
+                    diploma_fields = extract_diploma_fields(ocr_text)
+                    if diploma_fields:
+                        fields = diploma_fields
+                        current_app.logger.info("OCR fallback extracted diploma fields for %s", filename)
+                if not fields:
+                    fields = {"ocr_text": ocr_text}
         doc_type_name = _map_doc_type(ocr_res.doc_type, requirement_id)
         doc_type_tuple = DocumentTypeModel.get_by_name(doc_type_name) if doc_type_name else None
         doc_type = DocumentTypeModel.from_tuple(doc_type_tuple) if doc_type_tuple else None
