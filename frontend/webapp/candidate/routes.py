@@ -433,11 +433,15 @@ def view_document(document_id):
 def document_details_save(document_id):
     fields = {k: v for k, v in request.form.items() if k.startswith("field_")}
     application_id = request.form.get("application_id")
-    if not fields:
+    payload = {}
+    for key, value in fields.items():
+        cleaned = (value or "").strip()
+        if cleaned:
+            payload[key.replace("field_", "")] = cleaned
+    if not payload:
         flash("No fields submitted.", "warning")
         return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
 
-    payload = {k.replace("field_", ""): v for k, v in fields.items()}
     with session_scope() as session:
         doc = session.query(DocumentORM).filter_by(id=document_id).first()
         if not doc or not doc.document_data_id:
