@@ -20,7 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetName = btn.getAttribute("data-target");
       const value = btn.getAttribute("data-value") || "";
       if (!targetName) return;
-      const input = document.querySelector(`input[name="${targetName}"]`);
+      const scope = btn.closest("form") || document;
+      const input = scope.querySelector(`input[name="${targetName}"], textarea[name="${targetName}"]`);
       if (input) {
         input.value = value;
         input.focus();
