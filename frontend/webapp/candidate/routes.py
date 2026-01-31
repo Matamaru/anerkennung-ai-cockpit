@@ -35,6 +35,7 @@ from backend.utils.s3_docs import upload_bytes, presign_url, is_s3_uri
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from sqlalchemy import func
+from sqlalchemy.orm.attributes import flag_modified
 import difflib
 import re
 import os
@@ -184,12 +185,6 @@ def get_document_details(document_id) -> Document:
             )
             if row:
                 print(f"Fetched details for document {document_id}")
-                current_app.logger.warning(
-                    "Document details load for %s: keys=%s data=%s",
-                    document_id,
-                    sorted(list((row.ocr_extracted_data or {}).keys())),
-                    row.ocr_extracted_data or {},
-                )
                 return {
                     "document_id": row.document_id,
                     "file_id": row.file_id,
@@ -475,15 +470,10 @@ def document_details_save(document_id):
         if not dd:
             flash("Document data not found.", "danger")
             return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
-        existing = dd.ocr_extracted_data or {}
+        existing = dict(dd.ocr_extracted_data or {})
         existing.update(payload)
-        dd.ocr_extracted_data = existing
-        current_app.logger.warning(
-            "Document details save stored for %s: keys=%s data=%s",
-            document_id,
-            sorted(list(existing.keys())),
-            existing,
-        )
+        dd.ocr_extracted_data = dict(existing)
+        flag_modified(dd, "ocr_extracted_data")
 
     flash("Fields updated.", "success")
     return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
