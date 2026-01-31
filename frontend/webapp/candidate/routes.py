@@ -184,6 +184,12 @@ def get_document_details(document_id) -> Document:
             )
             if row:
                 print(f"Fetched details for document {document_id}")
+                current_app.logger.warning(
+                    "Document details load for %s: keys=%s data=%s",
+                    document_id,
+                    sorted(list((row.ocr_extracted_data or {}).keys())),
+                    row.ocr_extracted_data or {},
+                )
                 return {
                     "document_id": row.document_id,
                     "file_id": row.file_id,
@@ -472,6 +478,12 @@ def document_details_save(document_id):
         existing = dd.ocr_extracted_data or {}
         existing.update(payload)
         dd.ocr_extracted_data = existing
+        current_app.logger.warning(
+            "Document details save stored for %s: keys=%s data=%s",
+            document_id,
+            sorted(list(existing.keys())),
+            existing,
+        )
 
     flash("Fields updated.", "success")
     return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
