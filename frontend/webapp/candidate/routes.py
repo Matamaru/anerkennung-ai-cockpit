@@ -121,6 +121,7 @@ def get_requirements_for_application(application_id) -> list[dict]:
                 session.query(Requirement.id, Requirement.name, Requirement.description)
                 .join(AppDoc, Requirement.id == AppDoc.requirements_id)
                 .filter(AppDoc.application_id == application_id)
+                .distinct(Requirement.id)
                 .all()
             )
             print(f"Requirement tuples in candidate.get_requirements_for_application: {rows}")
@@ -133,6 +134,15 @@ def get_requirements_for_application(application_id) -> list[dict]:
     except Exception as e:
         print(f"Error fetching requirements for application {application_id}: {e}")
         return []
+
+
+def _requirement_allows_multiple(requirement_id: str) -> bool:
+    req_tuple = Requirements.get_by_id(requirement_id)
+    req = Requirements.from_tuple(req_tuple) if req_tuple else None
+    if not req or not req.name:
+        return False
+    name = req.name.lower()
+    return any(token in name for token in ("qualification", "diploma", "certificate", "transcript"))
 
 
 def get_document_details(document_id) -> Document:
@@ -301,15 +311,17 @@ def document_management():
                 .filter_by(application_id=application_id, requirements_id=requirement_id)
                 .first()
             )
-            if link:
+            if link and not _requirement_allows_multiple(requirement_id):
                 link.document_id = doc_tuple[0]
             else:
-                session.add(AppDoc(
-                    id=str(uuid4()),
-                    application_id=application_id,
-                    document_id=doc_tuple[0],
-                    requirements_id=requirement_id,
-                ))
+                session.add(
+                    AppDoc(
+                        id=str(uuid4()),
+                        application_id=application_id,
+                        document_id=doc_tuple[0],
+                        requirements_id=requirement_id,
+                    )
+                )
 
         flash("Document uploaded and processed.", "success")
         return redirect(url_for("candidate.document_management", application_id=application_id))
