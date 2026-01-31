@@ -336,6 +336,13 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
         pass
         fields = extract_diploma_fields(ocr_text)
         predictions = ocr_text.splitlines()
+
+    # Always try MRZ-based extraction to populate passport fields.
+    if ocr_text:
+        mrz_fields = _extract_mrz_from_text(ocr_text)
+        if mrz_fields:
+            for k, v in mrz_fields.items():
+                fields.setdefault(k, v)
         
     return OcrResult(doc_type=doc_type, predictions=predictions, ocr_text=ocr_text, fields=fields)
 
