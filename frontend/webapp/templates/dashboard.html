@@ -43,7 +43,7 @@
           <div class="card-header">
             Admin Panel
           </div>
-          <div class="card-body">
+          <div class="card-body dashboard-buttons">
             <h5 class="card-title">Admin Dashboard</h5>
             <p class="card-text">Manage users, review system logs, and configure requirements for Anerkennung for different countries and states.</p>
             <a href="{{ url_for('admin.user_management') }}" class="btn btn-danger w-100 mb-2">
@@ -70,7 +70,7 @@
           <div class="card-header">
             Recruiter Tools
           </div>
-          <div class="card-body">
+          <div class="card-body dashboard-buttons">
             <h5 class="card-title">Recruiter Dashboard</h5>
             <p class="card-text">Manage candidates, contact other recruiters, or reach out to the admin.</p>
             <a href="{{ url_for('recruiter.candidate_management') }}" class="btn btn-info w-100 mb-2 text-start">
@@ -97,7 +97,7 @@
           <div class="card-header">
             Candidate Dashboard
           </div>
-          <div class="card-body">
+          <div class="card-body dashboard-buttons">
             <h5 class="card-title">My Profile</h5>
             <p class="card-text">Manage your documents, track your applications, and contact recruiters.</p>
             <a href="{{ url_for('candidate.document_management') }}" class="btn btn-primary w-100 mb-2 d-flex justify-content-between align-items-center text-start">
