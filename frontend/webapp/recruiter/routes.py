@@ -7,7 +7,7 @@
 
 #=== Imports
 from flask import render_template, request, flash, redirect, url_for, send_file
-from flask_login import login_required
+from flask_login import login_required, current_user
 from frontend.webapp.recruiter import recruiter_bp
 from frontend.webapp.utils import recruiter_required
 from backend.datamodule.sa import session_scope
