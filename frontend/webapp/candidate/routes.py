@@ -536,7 +536,8 @@ def _call_ocr_service(base_url: str, file_bytes: bytes, filename: str, doc_hint:
     if doc_hint:
         params["doc_hint"] = doc_hint
     files = {"file": (filename, file_bytes)}
-    resp = requests.post(url, params=params, files=files, timeout=60)
+    timeout_s = int(os.getenv("OCR_SERVICE_TIMEOUT", "15"))
+    resp = requests.post(url, params=params, files=files, timeout=(5, timeout_s))
     resp.raise_for_status()
     data = resp.json()
     if not isinstance(data, dict):
