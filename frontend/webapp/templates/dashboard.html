@@ -73,16 +73,16 @@
           <div class="card-body">
             <h5 class="card-title">Recruiter Dashboard</h5>
             <p class="card-text">Manage candidates, contact other recruiters, or reach out to the admin.</p>
-            <a href="{{ url_for('recruiter.candidate_management') }}" class="btn btn-info w-100 mb-2">
+            <a href="{{ url_for('recruiter.candidate_management') }}" class="btn btn-info w-100 mb-2 text-start">
               <i class="bi bi-person-check me-1"></i> Candidate Management
             </a>
-            <a href="{{ url_for('recruiter.recruiter_profile') }}" class="btn btn-outline-info w-100 mb-2">
+            <a href="{{ url_for('recruiter.recruiter_profile') }}" class="btn btn-outline-info w-100 mb-2 text-start">
               <i class="bi bi-person-lines-fill me-1"></i> My Profile
             </a>
-            <a href="{{ url_for('recruiter.contact_recruiters') }}" class="btn btn-success w-100 mb-2">
+            <a href="{{ url_for('recruiter.contact_recruiters') }}" class="btn btn-success w-100 mb-2 text-start">
               <i class="bi bi-chat-left-dots me-1"></i> Contact Recruiters
             </a>
-            <a href="{{ url_for('recruiter.contact_admin') }}" class="btn btn-dark w-100 mb-2">
+            <a href="{{ url_for('recruiter.contact_admin') }}" class="btn btn-dark w-100 mb-2 text-start">
               <i class="bi bi-person-fill-lock me-1"></i> Contact Admin
             </a>
           </div>
@@ -100,19 +100,19 @@
           <div class="card-body">
             <h5 class="card-title">My Profile</h5>
             <p class="card-text">Manage your documents, track your applications, and contact recruiters.</p>
-            <a href="{{ url_for('candidate.document_management') }}" class="btn btn-primary w-100 mb-2 d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('candidate.document_management') }}" class="btn btn-primary w-100 mb-2 d-flex justify-content-between align-items-center text-start">
               <span><i class="bi bi-file-earmark-pdf me-1"></i> Documents Management</span>
               {% if review_alert_count %}
                 <span class="badge bg-warning text-dark">{{ review_alert_count }}</span>
               {% endif %}
             </a>
-            <a href="{{ url_for('candidate.applications_management') }}" class="btn btn-secondary w-100 mb-2">
+            <a href="{{ url_for('candidate.applications_management') }}" class="btn btn-secondary w-100 mb-2 text-start">
               <i class="bi bi-journal-text me-1"></i> Applications Management
             </a>
-            <a href="{{ url_for('candidate.candidate_profile') }}" class="btn btn-outline-primary w-100 mb-2">
+            <a href="{{ url_for('candidate.candidate_profile') }}" class="btn btn-outline-primary w-100 mb-2 text-start">
               <i class="bi bi-person-lines-fill me-1"></i> My Profile
             </a>
-            <a href="{{ url_for('candidate.contact_recruiter') }}" class="btn btn-primary w-100 mb-2">
+            <a href="{{ url_for('candidate.contact_recruiter') }}" class="btn btn-primary w-100 mb-2 text-start">
               <i class="bi bi-chat-left me-1"></i> Contact Recruiter
             </a>
           </div>

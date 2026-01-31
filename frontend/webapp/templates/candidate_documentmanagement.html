@@ -105,11 +105,11 @@
                           {{ review_status }}
                         </span>
                       </div>
-                      <div class="btn-group">
+                      <div class="doc-actions">
                         <a href="{{ url_for('candidate.document_details', document_id=doc.document_id, application_id=application_id) }}" class="btn btn-sm btn-info">Details</a>
-                        <form method="POST" action="{{ url_for('candidate.delete_document', document_id=doc.document_id) }}" class="d-inline">
+                        <form method="POST" action="{{ url_for('candidate.delete_document', document_id=doc.document_id) }}">
                           <input type="hidden" name="application_id" value="{{ application_id }}">
-                          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this document?');">Delete</button>
+                          <button type="submit" class="btn btn-sm btn-danger w-100" onclick="return confirm('Delete this document?');">Delete</button>
                         </form>
                       </div>
                     </div>
