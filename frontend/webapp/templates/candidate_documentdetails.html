@@ -28,73 +28,18 @@
     </dl>
 
     {% set fields = document.ocr_extracted_data or {} %}
-    {% set dtype = (document.document_type_name or '')|lower %}
-    {% if fields %}
+    {% if form_fields %}
       <hr>
       <h6>Extracted Fields (editable)</h6>
       <form method="POST" action="{{ url_for('candidate.document_details_save', document_id=document.document_id) }}">
-        {% if 'passport' in dtype %}
-          <div class="row">
+        <div class="row">
+          {% for f in form_fields %}
             <div class="col-md-6 mb-3">
-              <label class="form-label">First Name(s)</label>
-              <input type="text" name="field_given_names" class="form-control" value="{{ fields.get('given_names','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Last Name</label>
-              <input type="text" name="field_surname" class="form-control" value="{{ fields.get('surname','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Nationality</label>
-              <input type="text" name="field_nationality" class="form-control" value="{{ fields.get('nationality','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Passport Number</label>
-              <input type="text" name="field_passport_number" class="form-control" value="{{ fields.get('passport_number','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Birth Date</label>
-              <input type="text" name="field_birth_date" class="form-control" value="{{ fields.get('birth_date','') or fields.get('birth_date_raw','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Sex</label>
-              <input type="text" name="field_sex" class="form-control" value="{{ fields.get('sex','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Expiry Date</label>
-              <input type="text" name="field_expiry_date" class="form-control" value="{{ fields.get('expiry_date','') or fields.get('expiry_date_raw','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Issuing Country</label>
-              <input type="text" name="field_issuing_country" class="form-control" value="{{ fields.get('issuing_country','') }}">
-            </div>
-          </div>
-        {% elif 'diploma' in dtype or 'degree' in dtype %}
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Holder Name</label>
-              <input type="text" name="field_holder_name" class="form-control" value="{{ fields.get('holder_name','') or fields.get('holder_name_guess','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Degree Type</label>
-              <input type="text" name="field_degree_type" class="form-control" value="{{ fields.get('degree_type','') or fields.get('degree_type_guess','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Institution</label>
-              <input type="text" name="field_institution" class="form-control" value="{{ fields.get('institution','') or fields.get('institution_guess','') }}">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Graduation Date</label>
-              <input type="text" name="field_graduation_date" class="form-control" value="{{ (fields.get('graduation_date') or (fields.get('dates_detected')[0] if fields.get('dates_detected') else '')) }}">
-            </div>
-          </div>
-        {% else %}
-          {% for key, value in fields.items() %}
-            <div class="mb-3">
-              <label class="form-label">{{ key.replace('_', ' ').title() }}</label>
-              <input type="text" name="field_{{ key }}" class="form-control" value="{{ value }}">
+              <label class="form-label">{{ f.label }}</label>
+              <input type="text" name="field_{{ f.key }}" class="form-control" value="{{ f.value }}">
             </div>
           {% endfor %}
-        {% endif %}
+        </div>
         <button type="submit" class="btn btn-primary">Save Changes</button>
       </form>
 

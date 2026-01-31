@@ -301,7 +301,8 @@ def document_management():
 def document_details(document_id):
     # Get the details of the selected document
     document = get_document_details(document_id)
-    return render_template("candidate_documentdetails.html", document=document)
+    form_fields = _build_document_form_fields(document)
+    return render_template("candidate_documentdetails.html", document=document, form_fields=form_fields)
 
 
 @login_required
@@ -340,6 +341,70 @@ def _infer_filetype(filename: str, file_bytes: bytes) -> str:
     if ext == ".png":
         return "PNG"
     return "PDF"
+
+
+def _pick_field_value(fields: dict, keys: list[str], default: str = "") -> str:
+    for key in keys:
+        if key in fields and fields[key] not in (None, ""):
+            val = fields[key]
+            if isinstance(val, list):
+                return ", ".join(str(v) for v in val if v not in (None, ""))
+            return str(val)
+    return default
+
+
+def _document_form_schema(doc_type_name: str | None) -> list[dict]:
+    dtype = (doc_type_name or "").lower()
+    if "passport" in dtype or "id" in dtype:
+        return [
+            {"key": "given_names", "label": "First Name(s)", "source_keys": ["given_names"]},
+            {"key": "surname", "label": "Last Name", "source_keys": ["surname"]},
+            {"key": "surname_birth", "label": "Birth/Former Name", "source_keys": ["surname_birth", "surname_previous"]},
+            {"key": "nationality", "label": "Nationality", "source_keys": ["nationality"]},
+            {"key": "passport_number", "label": "Passport Number", "source_keys": ["passport_number", "document_number"]},
+            {"key": "birth_date", "label": "Birth Date", "source_keys": ["birth_date", "birth_date_raw"]},
+            {"key": "sex", "label": "Sex", "source_keys": ["sex"]},
+            {"key": "expiry_date", "label": "Expiry Date", "source_keys": ["expiry_date", "expiry_date_raw"]},
+            {"key": "issuing_country", "label": "Issuing Country", "source_keys": ["issuing_country"]},
+            {"key": "personal_number", "label": "Personal Number", "source_keys": ["personal_number"]},
+        ]
+    if "diploma" in dtype or "degree" in dtype or "certificate" in dtype:
+        return [
+            {"key": "holder_first_name", "label": "First Name(s)", "source_keys": ["holder_first_name"]},
+            {"key": "holder_last_name", "label": "Last Name", "source_keys": ["holder_last_name"]},
+            {"key": "holder_name", "label": "Full Name", "source_keys": ["holder_name", "holder_name_guess"]},
+            {"key": "holder_birth_name", "label": "Birth/Former Name", "source_keys": ["holder_birth_name"]},
+            {"key": "institution_name", "label": "Institution", "source_keys": ["institution_name", "institution", "institution_guess"]},
+            {"key": "degree_type", "label": "Degree Type", "source_keys": ["degree_type", "degree_type_guess"]},
+            {"key": "program_or_field", "label": "Program / Field", "source_keys": ["program_or_field"]},
+            {"key": "graduation_status", "label": "Graduation Status", "source_keys": ["graduation_status"]},
+            {"key": "graduation_date", "label": "Graduation Date", "source_keys": ["graduation_date", "dates", "dates_detected"]},
+            {"key": "location", "label": "Location", "source_keys": ["location"]},
+            {"key": "diploma_number", "label": "Diploma Number", "source_keys": ["diploma_number"]},
+        ]
+    return []
+
+
+def _build_document_form_fields(document: dict | None) -> list[dict]:
+    if not document:
+        return []
+    fields = document.get("ocr_extracted_data") or {}
+    schema = _document_form_schema(document.get("document_type_name"))
+    if not schema:
+        return [
+            {"key": key, "label": key.replace("_", " ").title(), "value": str(value)}
+            for key, value in fields.items()
+        ]
+    out: list[dict] = []
+    for entry in schema:
+        out.append(
+            {
+                "key": entry["key"],
+                "label": entry["label"],
+                "value": _pick_field_value(fields, entry.get("source_keys", [entry["key"]])),
+            }
+        )
+    return out
 
 
 def _map_doc_type(doc_type: str, requirement_id: str) -> str | None:
