@@ -33,6 +33,7 @@ class RequirementForm(FlaskForm):
     optional = SelectField('Optional', choices=[('true', 'Yes'), ('false', 'No')], default='false', validators=[DataRequired()])
     translation_required = SelectField('Translation Required', choices=[('true', 'Yes'), ('false', 'No')], default='false', validators=[DataRequired()])
     fullfilled = SelectField('Fulfilled', choices=[('true', 'Yes'), ('false', 'No')], default='false', validators=[DataRequired()])
+    allow_multiple = SelectField('Allow Multiple Uploads', choices=[('true', 'Multiple'), ('false', 'Unique')], default='true', validators=[DataRequired()])
     submit = SubmitField('Save')
 
 class DocumentTypeForm(FlaskForm):

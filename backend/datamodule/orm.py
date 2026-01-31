@@ -138,6 +138,7 @@ class Requirement(Base):
     optional: Mapped[bool] = mapped_column(Boolean, default=False)
     translation_required: Mapped[bool] = mapped_column(Boolean, default=False)
     fullfilled: Mapped[bool] = mapped_column(Boolean, default=False)
+    allow_multiple: Mapped[bool] = mapped_column(Boolean, default=True)
 
     profession = relationship("Profession")
     country = relationship("Country")

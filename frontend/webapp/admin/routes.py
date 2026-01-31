@@ -190,6 +190,7 @@ def requirements_management():
             optional="true" if selected_req.optional else "false",
             translation_required="true" if selected_req.translation_required else "false",
             fullfilled="true" if selected_req.fullfilled else "false",
+            allow_multiple="true" if getattr(selected_req, "allow_multiple", True) else "false",
         )
     else:
         form = RequirementForm()
@@ -346,6 +347,7 @@ def requirements_save():
         _str_to_bool(form.optional.data),
         _str_to_bool(form.translation_required.data),
         _str_to_bool(form.fullfilled.data),
+        _str_to_bool(form.allow_multiple.data),
         req_id
     )
 
@@ -393,7 +395,8 @@ def requirements_save():
             description=(form.description.data or "").strip() or None,
             optional=_str_to_bool(form.optional.data),
             translation_required=_str_to_bool(form.translation_required.data),
-            fullfilled=_str_to_bool(form.fullfilled.data)
+            fullfilled=_str_to_bool(form.fullfilled.data),
+            allow_multiple=_str_to_bool(form.allow_multiple.data),
         )
         new_req_tuple = new_req.insert()
         if not new_req_tuple:
@@ -567,4 +570,3 @@ def document_type_delete(doc_id: str):
 @admin_bp.get("/dashboard/admin/systemlogs")
 def system_logs():
     return render_template("admin_systemlogs.html")
-

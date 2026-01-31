@@ -256,6 +256,13 @@
                     <div class="text-danger small">{{ error }}</div>
                   {% endfor %}
                 </div>
+                <div class="col-md-5">
+                  {{ form.allow_multiple.label(class="form-label") }}
+                  {{ form.allow_multiple(class="form-select form-select-sm") }}
+                  {% for error in form.allow_multiple.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                  {% endfor %}
+                </div>
               </div>
 
               <!-- Buttons Cancel and Save -->

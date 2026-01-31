@@ -4,7 +4,7 @@ import os
 from contextlib import contextmanager
 from typing import Iterator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
 
@@ -39,6 +39,36 @@ DATABASE_URL = _database_url()
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
+
+
+def _ensure_requirements_allow_multiple_column() -> None:
+    try:
+        with engine.begin() as conn:
+            if conn.dialect.name == "sqlite":
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(_requirements)")).fetchall()]
+                if "allow_multiple" not in cols:
+                    conn.execute(text("ALTER TABLE _requirements ADD COLUMN allow_multiple BOOLEAN DEFAULT 1"))
+            else:
+                exists = conn.execute(
+                    text(
+                        "SELECT 1 FROM information_schema.columns "
+                        "WHERE table_name = '_requirements' AND column_name = 'allow_multiple'"
+                    )
+                ).fetchone()
+                if not exists:
+                    conn.execute(text("ALTER TABLE _requirements ADD COLUMN allow_multiple BOOLEAN DEFAULT TRUE"))
+                    conn.execute(
+                        text(
+                            "UPDATE _requirements SET allow_multiple = FALSE "
+                            "WHERE lower(name) IN ('id','cv','proofofberlinresponsibility','passport')"
+                        )
+                    )
+    except Exception:
+        # Best-effort migration; ignore if DB user lacks permissions.
+        pass
+
+
+_ensure_requirements_allow_multiple_column()
 
 
 @contextmanager

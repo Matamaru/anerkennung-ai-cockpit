@@ -141,8 +141,12 @@ def _requirement_allows_multiple(requirement_id: str) -> bool:
     req = Requirements.from_tuple(req_tuple) if req_tuple else None
     if not req or not req.name:
         return False
+    if getattr(req, "allow_multiple", None) is not None:
+        return bool(req.allow_multiple)
     name = req.name.lower()
-    return any(token in name for token in ("qualification", "diploma", "certificate", "transcript"))
+    if name in ("id", "cv", "proofofberlinresponsibility", "passport"):
+        return False
+    return True
 
 
 def get_document_details(document_id) -> Document:

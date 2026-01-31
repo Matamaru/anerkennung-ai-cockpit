@@ -22,6 +22,7 @@ class Requirements(Model):
                  optional: bool = False, 
                  translation_required: bool = False, 
                  fullfilled: bool = False, 
+                 allow_multiple: bool = True,
                  id: str = None):
         self.id = id or str(uuid4())
         self.profession_id = profession_id
@@ -32,6 +33,7 @@ class Requirements(Model):
         self.optional = optional
         self.translation_required = translation_required
         self.fullfilled = fullfilled
+        self.allow_multiple = allow_multiple
 
     def __repr__(self):
         return f"<Requirement name={self.name} optional={self.optional} translation_required={self.translation_required} fullfilled={self.fullfilled}>"
@@ -49,6 +51,7 @@ class Requirements(Model):
                     optional=self.optional,
                     translation_required=self.translation_required,
                     fullfilled=self.fullfilled,
+                    allow_multiple=self.allow_multiple,
                 )
                 session.add(orm_req)
                 session.flush()
@@ -59,7 +62,7 @@ class Requirements(Model):
     def update(self, values: tuple) -> tuple:
         try:
             with session_scope() as session:
-                orm_req = session.query(RequirementORM).filter_by(id=values[8]).first()
+                orm_req = session.query(RequirementORM).filter_by(id=values[9]).first()
                 if not orm_req:
                     raise UpdateError("Failed to update requirement in database.")
                 orm_req.profession_id = values[0]
@@ -70,6 +73,7 @@ class Requirements(Model):
                 orm_req.optional = values[5]
                 orm_req.translation_required = values[6]
                 orm_req.fullfilled = values[7]
+                orm_req.allow_multiple = values[8]
                 session.flush()
                 return Requirements._as_tuple(orm_req)
         except Exception as error:
@@ -169,7 +173,8 @@ class Requirements(Model):
             description=t[5],
             optional=t[6],
             translation_required=t[7],
-            fullfilled=t[8]
+            fullfilled=t[8],
+            allow_multiple=t[9] if len(t) > 9 else None
         )
     
     @staticmethod
@@ -183,7 +188,8 @@ class Requirements(Model):
             description=data.get("description"),
             optional=data.get("optional"),
             translation_required=data.get("translation_required"),
-            fullfilled=data.get("fullfilled")
+            fullfilled=data.get("fullfilled"),
+            allow_multiple=data.get("allow_multiple"),
         )
 
     @staticmethod
@@ -246,6 +252,9 @@ class Requirements(Model):
                             if existing:
                                 print(f"Requirement {req['name']} for {state_code} already exists. Skipping.")
                                 continue
+                            allow_multiple = req.get("allow_multiple")
+                            if allow_multiple is None:
+                                allow_multiple = req["name"] not in ("ID", "CV", "ProofOfBerlinResponsibility")
                             session.add(RequirementORM(
                                 id=str(uuid4()),
                                 profession_id=profession.id,
@@ -256,6 +265,7 @@ class Requirements(Model):
                                 optional=req["optional"],
                                 translation_required=req["translation_required_if_not_german"],
                                 fullfilled=req["fullfilled"],
+                                allow_multiple=allow_multiple,
                             ))
                             print(f"Inserted default requirement '{req['name']}' for {state_code}.")
         except Exception as error:
@@ -273,4 +283,5 @@ class Requirements(Model):
             orm_req.optional,
             orm_req.translation_required,
             orm_req.fullfilled,
+            orm_req.allow_multiple,
         )
