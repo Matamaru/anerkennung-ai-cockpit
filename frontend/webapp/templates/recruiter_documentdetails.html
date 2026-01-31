@@ -1,0 +1,59 @@
+<!--  Application:    Anerkennung AI Cockpit                                -->
+<!--  Module:         templates.recruiter_documentdetails                   -->
+<!--  Author:         Heiko Matamaru, IGS                                   -->
+<!--  Version:        0.0.1                                                 -->
+{% extends 'base.html' %}
+
+{% block title %} Document Details - Recruiter {% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <h5>Document Details</h5>
+
+    <dl class="row">
+      <dt class="col-sm-3">Document Type</dt>
+      <dd class="col-sm-9">{{ document.document_type_name }}</dd>
+
+      <dt class="col-sm-3">File Name</dt>
+      <dd class="col-sm-9">{{ document.filename }}</dd>
+
+      <dt class="col-sm-3">File Path</dt>
+      <dd class="col-sm-9">{{ document.filepath }}</dd>
+
+      <dt class="col-sm-3">Document</dt>
+      <dd class="col-sm-9">
+        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('recruiter.view_document', document_id=document.document_id) }}" target="_blank" rel="noopener">
+          Open Document
+        </a>
+      </dd>
+
+      <dt class="col-sm-3">OCR Text</dt>
+      <dd class="col-sm-9">{{ document.ocr_full_text }}</dd>
+
+      <dt class="col-sm-3">Status</dt>
+      <dd class="col-sm-9">{{ document.status_name or document.status_id }}</dd>
+    </dl>
+
+    {% set fields = document.ocr_extracted_data or {} %}
+    {% if form_fields %}
+      <hr>
+      <h6>Extracted Fields</h6>
+      <div class="row">
+        {% for f in form_fields %}
+          <div class="col-md-6 mb-3">
+            <label class="form-label">{{ f.label }}</label>
+            <input type="text" class="form-control" value="{{ f.value }}" readonly>
+          </div>
+        {% endfor %}
+      </div>
+
+      <hr>
+      <details>
+        <summary class="mb-2">Raw extracted fields</summary>
+        <pre class="small bg-light p-2 border rounded">{{ fields | tojson(indent=2) }}</pre>
+      </details>
+    {% endif %}
+
+    <a href="{{ url_for('recruiter.candidate_management') }}" class="btn btn-secondary">Back to Candidate Management</a>
+  </div>
+{% endblock %}

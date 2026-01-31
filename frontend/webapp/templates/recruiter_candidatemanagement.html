@@ -58,7 +58,8 @@
                 {% if applications %}
                   <div class="list-group list-group-flush">
                     {% for app in applications %}
-                      <div class="list-group-item">
+                      <a class="list-group-item list-group-item-action {% if selected_app_id == app.id %}active{% endif %}"
+                         href="{{ url_for('recruiter.candidate_management', user_id=selected_user.user_id, app_id=app.id) }}">
                         <div class="fw-semibold">{{ app.profession_name }}</div>
                         <div class="small text-muted">
                           {{ app.country_name }} · {{ app.state_name }}
@@ -66,7 +67,7 @@
                         <div class="small text-muted">
                           Created: {{ app.time_created }}
                         </div>
-                      </div>
+                      </a>
                     {% endfor %}
                   </div>
                 {% else %}
@@ -74,6 +75,35 @@
                 {% endif %}
               </div>
             </div>
+            {% if selected_app_id %}
+              <div class="card mt-3">
+                <div class="card-body">
+                  <h6 class="card-title mb-2">Documents</h6>
+                  {% if documents %}
+                    <div class="list-group list-group-flush">
+                      {% for doc in documents %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                          <div>
+                            <div class="fw-semibold">{{ doc.requirement_name }}</div>
+                            <div class="small text-muted">{{ doc.document_type_name }} · {{ doc.filename }}</div>
+                          </div>
+                          <div class="btn-group">
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('recruiter.document_details', document_id=doc.document_id) }}">
+                              Details
+                            </a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('recruiter.view_document', document_id=doc.document_id) }}" target="_blank" rel="noopener">
+                              Open
+                            </a>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="alert alert-info mb-0">No documents linked to this application.</div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
           {% else %}
             <div class="alert alert-secondary">Select a candidate to view applications.</div>
           {% endif %}
