@@ -350,7 +350,7 @@ def delete_document(document_id):
         if not application_id and app_docs:
             application_id = app_docs[0].application_id
         for ad in app_docs:
-            session.delete(ad)
+            ad.document_id = None
 
         file_id = doc.file_id
         data_id = doc.document_data_id
