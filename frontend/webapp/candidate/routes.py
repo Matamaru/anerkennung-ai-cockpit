@@ -332,6 +332,54 @@ def document_details_save(document_id):
     return redirect(url_for("candidate.document_details", document_id=document_id))
 
 
+@login_required
+@candidate_required
+@candidate_bp.post("/dashboard/candidate/documentmanagement/delete/<document_id>")
+def delete_document(document_id):
+    application_id = request.form.get("application_id")
+    with session_scope() as session:
+        doc = session.query(DocumentORM).filter_by(id=document_id).first()
+        if not doc:
+            flash("Document not found.", "danger")
+            return redirect(url_for("candidate.document_management", application_id=application_id))
+        if doc.user_id and str(doc.user_id) != str(current_user.id):
+            flash("Not allowed to delete this document.", "danger")
+            return redirect(url_for("candidate.document_management", application_id=application_id))
+
+        app_docs = session.query(AppDoc).filter_by(document_id=document_id).all()
+        if not application_id and app_docs:
+            application_id = app_docs[0].application_id
+        for ad in app_docs:
+            session.delete(ad)
+
+        file_id = doc.file_id
+        data_id = doc.document_data_id
+        filepath = doc.file.filepath if doc.file else None
+        session.delete(doc)
+
+        if file_id:
+            still_used = session.query(DocumentORM).filter_by(file_id=file_id).first()
+            if not still_used:
+                file_row = session.query(File).filter_by(id=file_id).first()
+                if file_row:
+                    session.delete(file_row)
+        if data_id:
+            still_used = session.query(DocumentORM).filter_by(document_data_id=data_id).first()
+            if not still_used:
+                data_row = session.query(DocumentDataORM).filter_by(id=data_id).first()
+                if data_row:
+                    session.delete(data_row)
+
+    if filepath and os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception:
+            pass
+
+    flash("Document deleted.", "success")
+    return redirect(url_for("candidate.document_management", application_id=application_id))
+
+
 def _infer_filetype(filename: str, file_bytes: bytes) -> str:
     if file_bytes[:4] == b"%PDF":
         return "PDF"

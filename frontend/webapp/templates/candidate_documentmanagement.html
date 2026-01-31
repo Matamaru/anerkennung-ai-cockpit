@@ -54,6 +54,10 @@
               <!-- Actions: Details & Delete -->
               <div class="btn-group">
                 <a href="{{ url_for('candidate.document_details', document_id=doc.document_id) }}" class="btn btn-sm btn-info">Details</a>
+                <form method="POST" action="{{ url_for('candidate.delete_document', document_id=doc.document_id) }}" class="d-inline">
+                  <input type="hidden" name="application_id" value="{{ application_id }}">
+                  <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this document?');">Delete</button>
+                </form>
               </div>
             </div>
           {% else %}
