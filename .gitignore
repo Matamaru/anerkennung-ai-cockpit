@@ -10,3 +10,8 @@ logs/
 *.egg-info/
 __pycache__/
 *.db
+sample_outputs/
+*.png
+*tokens*.json
+*layoutlm*.json
+models/

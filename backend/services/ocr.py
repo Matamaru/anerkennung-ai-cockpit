@@ -17,13 +17,16 @@ import re
 from dataclasses import dataclass
 from pdf2image import convert_from_bytes
 import pathlib
+import json
 try:
     from caesar_ocr import analyze_bytes as caesar_analyze_bytes
     from caesar_ocr.regex.engine import load_rules as caesar_load_rules, run_rules as caesar_run_rules
+    from caesar_ocr.pipeline.analyze import analyze_document_bytes as caesar_analyze_document_bytes
 except Exception:
     caesar_analyze_bytes = None
     caesar_load_rules = None
     caesar_run_rules = None
+    caesar_analyze_document_bytes = None
 
 #=== Helpers =============================================================
 def _load_image_from_bytes(b: bytes) -> Image.Image:
@@ -56,6 +59,24 @@ def preprocess_image(im: Image.Image) -> np.ndarray:
     denoised = cv2.fastNlMeansDenoising(gray, h=8)
 
     return denoised
+
+
+def _ocr_mrz(im: Image.Image) -> str:
+    """
+    OCR only the bottom strip of the document to improve MRZ extraction.
+    """
+    try:
+        w, h = im.size
+        # bottom ~25% of the page
+        crop = im.crop((0, int(h * 0.75), w, h))
+        crop = crop.convert("L")
+        arr = np.array(crop)
+        # binarize for MRZ
+        _, th = cv2.threshold(arr, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        cfg = "--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<"
+        return pytesseract.image_to_string(th, lang="eng", config=cfg)
+    except Exception:
+        return ""
 
 def _ocr_predictions(preprocessed_im: np.ndarray, lang: str = "eng+deu",
          psm: int = 11) -> list:
@@ -261,7 +282,7 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
     # Detect file type
     if file_bytes[:4] == b'%PDF':  # quick check for PDF magic number
         # Convert PDF pages to images
-        pages = convert_from_bytes(file_bytes, dpi=300)  # 300 dpi for decent OCR quality
+        pages = convert_from_bytes(file_bytes, dpi=400)  # higher DPI for MRZ accuracy
         if not pages:
             raise ValueError("Empty PDF")
         # Take the first page for PoC (you can loop later)
@@ -272,6 +293,10 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
     pim = preprocess_image(im)
     predictions = _ocr_predictions(pim)
     ocr_text = _ocr_text(im, psm=6)
+    # Try MRZ-focused OCR on bottom strip for fallback accuracy
+    mrz_text = _ocr_mrz(im)
+    if mrz_text:
+        ocr_text = ocr_text + "\n" + mrz_text
     print(ocr_text)
     doc_type = classify_doc(predictions)
     fields = {}
@@ -324,6 +349,278 @@ def _apply_doc_type_hints(res) -> None:
         return
     if "degree_type" in fields or "holder_name" in fields:
         res.doc_type = "Degree Certificate"
+
+
+def analyze_bytes_with_layoutlm_fields(
+    file_bytes: bytes,
+    *,
+    lang: str = "eng+deu",
+    token_model_dir: str | None = None,
+) -> tuple[OcrResult, dict]:
+    """
+    Run OCR and, if LayoutLM token model is configured, extract labeled fields.
+    Returns (ocr_result, extracted_fields).
+    """
+    if caesar_analyze_document_bytes is None:
+        res = analyze_bytes(file_bytes)
+        if res.ocr_text:
+            res.fields.update(_extract_mrz_from_text(res.ocr_text))
+            res.fields = _postprocess_passport_fields(res.fields)
+        return res, res.fields or {}
+
+    token_model_dir = token_model_dir or os.getenv("CAESAR_LAYOUTLM_TOKEN_MODEL_DIR")
+    if not token_model_dir:
+        res = analyze_bytes(file_bytes)
+        if res.ocr_text:
+            res.fields.update(_extract_mrz_from_text(res.ocr_text))
+            res.fields = _postprocess_passport_fields(res.fields)
+        return res, res.fields or {}
+
+    regex_paths = _resolve_rules_paths(file_bytes)
+    regex_path = regex_paths[0] if regex_paths else None
+
+    tool_res = caesar_analyze_document_bytes(
+        file_bytes,
+        layoutlm_model_dir=os.getenv("CAESAR_LAYOUTLM_MODEL_DIR"),
+        layoutlm_token_model_dir=token_model_dir,
+        lang=lang,
+        layoutlm_lang=os.getenv("CAESAR_LAYOUTLM_LANG"),
+        regex_rules_path=regex_path,
+        regex_debug=False,
+    )
+    res = tool_res.ocr
+
+    label_map = _load_label_map()
+    labeled_fields = _extract_fields_from_labeled_tokens(tool_res.schema, label_map)
+    if labeled_fields:
+        res.fields.update(labeled_fields)
+        _apply_doc_type_hints(res)
+
+    if res.ocr_text:
+        # Fill any missing MRZ fields from OCR text.
+        mrz_fields = _extract_mrz_from_text(res.ocr_text)
+        for k, v in mrz_fields.items():
+            res.fields.setdefault(k, v)
+        res.fields = _postprocess_passport_fields(res.fields)
+
+    return res, res.fields or {}
+
+
+def _load_label_map() -> dict:
+    """
+    Load label mapping for LayoutLM token labels to field names.
+    """
+    map_path = os.getenv("CAESAR_PASSPORT_LABEL_MAP_PATH")
+    if not map_path:
+        map_path = str(
+            pathlib.Path(__file__).resolve().parents[2]
+            / "backend"
+            / "utils"
+            / "label_maps"
+            / "passport.json"
+        )
+    try:
+        with open(map_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _extract_fields_from_labeled_tokens(schema, label_map: dict) -> dict:
+    if schema is None:
+        return {}
+
+    fields: dict[str, list[str]] = {}
+
+    pages = getattr(schema, "ocr", None)
+    if pages is None:
+        return {}
+    page_items = getattr(pages, "pages", None)
+    if not page_items:
+        return {}
+
+    for page in page_items:
+        for token in getattr(page, "tokens", []) or []:
+            label = token.label
+            text = token.text
+            if not label or label == "O" or not text:
+                continue
+            label_clean = label.replace("B-", "").replace("I-", "")
+            field_key = label_map.get(label_clean) or label_map.get(label) or label_clean.lower()
+            if field_key not in fields:
+                fields[field_key] = []
+            fields[field_key].append(text)
+
+    merged = {k: " ".join(v).strip() for k, v in fields.items() if v}
+    return _postprocess_passport_fields(merged)
+
+
+def _postprocess_passport_fields(fields: dict) -> dict:
+    """
+    Normalize MRZ fields from token labels (YYMMDD -> YYYY-MM-DD) and
+    derive human-friendly data when possible.
+    """
+    def _yyMMdd_to_iso(val: str) -> str:
+        if not val:
+            return val
+        digits = "".join(ch for ch in val if ch.isdigit())
+        if len(digits) != 6:
+            return val
+        yy = int(digits[0:2])
+        mm = digits[2:4]
+        dd = digits[4:6]
+        # heuristic century: 00-29 => 2000s, else 1900s
+        century = 2000 if yy <= 29 else 1900
+        return f"{century + yy:04d}-{mm}-{dd}"
+
+    for key in ("birth_date", "expiry_date"):
+        if key in fields:
+            fields[key] = _yyMMdd_to_iso(fields[key])
+
+    # Compose full name if parts exist
+    if "surname" in fields or "given_names" in fields:
+        surname = fields.get("surname", "")
+        given = fields.get("given_names", "")
+        full = " ".join(part for part in [given, surname] if part).strip()
+        if full:
+            fields.setdefault("full_name", full)
+
+    # Normalize sex field
+    if "sex" in fields:
+        fields["sex"] = fields["sex"].strip().upper()
+
+    return fields
+
+
+def _extract_mrz_from_text(ocr_text: str) -> dict:
+    """
+    Try to detect and parse MRZ lines from raw OCR text.
+    """
+    if not ocr_text:
+        return {}
+
+    lines = [ln.strip() for ln in ocr_text.splitlines() if ln.strip()]
+    mrz_candidates = [ln for ln in lines if ln.count("<") >= 3]
+    if len(mrz_candidates) >= 2:
+        mrz_lines = mrz_candidates[:2]
+    else:
+        # Fallback: try to find a single long MRZ block and split
+        joined = " ".join(lines)
+        parts = [p for p in joined.split() if p.count("<") >= 3]
+        if len(parts) >= 2:
+            mrz_lines = parts[:2]
+        else:
+            # Look for a long MRZ-like token and split into 44/44
+            candidates = [p for p in joined.split() if p.count("<") >= 3 and len(p) >= 80]
+            if candidates:
+                token = candidates[0]
+                if len(token) >= 88:
+                    mrz_lines = [token[:44], token[44:88]]
+                else:
+                    return {}
+            else:
+                # As a last resort, strip spaces and scan for a long MRZ run
+                condensed = "".join(ch for ch in joined if ch.isalnum() or ch == "<")
+                if len(condensed) >= 88 and condensed.count("<") >= 3:
+                    mrz_lines = [condensed[:44], condensed[44:88]]
+                else:
+                    return {}
+
+    mrz_lines = [_normalize_mrz_line(l) for l in mrz_lines]
+    if not _mrz_checksum_ok(mrz_lines[1]):
+        return {}
+
+    return _parse_mrz_lines(mrz_lines)
+
+
+def _parse_mrz_lines(mrz_lines: list[str]) -> dict:
+    """
+    Parse TD3 MRZ (2 lines, 44 chars) in a tolerant way.
+    """
+    if len(mrz_lines) < 2:
+        return {}
+    l1 = mrz_lines[0].replace(" ", "").upper()
+    l2 = mrz_lines[1].replace(" ", "").upper()
+    out: dict[str, str] = {"mrz_line1": l1, "mrz_line2": l2}
+
+    try:
+        out["document_code"] = l1[0:2]
+        out["issuing_country"] = l1[2:5]
+        name_raw = l1[5:].split("<<", 1)
+        out["surname"] = name_raw[0].replace("<", " ").strip()
+        out["given_names"] = name_raw[1].replace("<", " ").strip() if len(name_raw) > 1 else ""
+        out["passport_number"] = l2[0:9].replace("<","").strip()
+        out["nationality"]     = l2[10:13]
+        out["birth_date"]      = l2[13:19]
+        out["sex"]             = l2[20:21]
+        out["expiry_date"]     = l2[21:27]
+        out["personal_number"] = l2[28:42].replace("<","").strip()
+        out["passport_number_check"] = l2[9:10]
+        out["birth_date_check"] = l2[19:20]
+        out["expiry_date_check"] = l2[27:28]
+        out["personal_number_check"] = l2[42:43]
+        out["final_check"] = l2[43:44]
+    except Exception:
+        pass
+
+    return out
+
+
+def _normalize_mrz_line(line: str) -> str:
+    cleaned = "".join(ch for ch in line.upper() if ch.isalnum() or ch == "<")
+    return cleaned
+
+
+def _mrz_char_value(ch: str) -> int:
+    if ch.isdigit():
+        return int(ch)
+    if "A" <= ch <= "Z":
+        return ord(ch) - ord("A") + 10
+    return 0
+
+
+def _mrz_check_digit(data: str) -> str:
+    weights = [7, 3, 1]
+    total = 0
+    for i, ch in enumerate(data):
+        total += _mrz_char_value(ch) * weights[i % 3]
+    return str(total % 10)
+
+
+def _mrz_checksum_ok(line2: str) -> bool:
+    """
+    Validate key check digits for TD3 line 2.
+    """
+    if not line2 or len(line2) < 44:
+        return False
+    line2 = _normalize_mrz_line(line2)
+    if len(line2) < 44:
+        return False
+
+    passport_no = line2[0:9]
+    passport_no_chk = line2[9:10]
+    birth = line2[13:19]
+    birth_chk = line2[19:20]
+    expiry = line2[21:27]
+    expiry_chk = line2[27:28]
+    personal = line2[28:42]
+    personal_chk = line2[42:43]
+    final_chk = line2[43:44]
+
+    if _mrz_check_digit(passport_no) != passport_no_chk:
+        return False
+    if _mrz_check_digit(birth) != birth_chk:
+        return False
+    if _mrz_check_digit(expiry) != expiry_chk:
+        return False
+    if _mrz_check_digit(personal) != personal_chk:
+        return False
+
+    composite = passport_no + passport_no_chk + line2[10:13] + birth + birth_chk + expiry + expiry_chk + personal + personal_chk
+    if _mrz_check_digit(composite) != final_chk:
+        return False
+
+    return True
 
 
 #image_path = "/home/chief/Projects/anerkennung_ai_cockpit/dummy_docs/id_HM.jpg"

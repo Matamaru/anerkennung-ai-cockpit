@@ -46,8 +46,8 @@
               </div>
 
               <!-- Status Badge -->
-              <span class="badge {% if doc.status_id == 'approved' %}bg-success{% elif doc.status_id == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
-                {{ doc.status_id }}
+              <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                {{ doc.status_name or doc.status_id }}
               </span>
 
               <!-- Actions: Details & Delete -->

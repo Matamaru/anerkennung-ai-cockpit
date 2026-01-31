@@ -1,0 +1,19 @@
+{
+  "MRZ_LINE1": "mrz_line1",
+  "MRZ_LINE2": "mrz_line2",
+  "DOC_CODE": "document_code",
+  "ISSUING_COUNTRY": "issuing_country",
+  "SURNAME": "surname",
+  "GIVEN_NAMES": "given_names",
+  "PASSPORT_NUMBER": "passport_number",
+  "PASSPORT_NUMBER_CHECK": "passport_number_check",
+  "NATIONALITY": "nationality",
+  "BIRTH_DATE": "birth_date",
+  "BIRTH_DATE_CHECK": "birth_date_check",
+  "SEX": "sex",
+  "EXPIRY_DATE": "expiry_date",
+  "EXPIRY_DATE_CHECK": "expiry_date_check",
+  "PERSONAL_NUMBER": "personal_number",
+  "PERSONAL_NUMBER_CHECK": "personal_number_check",
+  "FINAL_CHECK": "final_check"
+}

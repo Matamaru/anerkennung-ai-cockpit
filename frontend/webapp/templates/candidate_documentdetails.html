@@ -24,8 +24,22 @@
       <dd class="col-sm-9">{{ document.ocr_full_text }}</dd>
 
       <dt class="col-sm-3">Status</dt>
-      <dd class="col-sm-9">{{ document.status_id }}</dd>
+      <dd class="col-sm-9">{{ document.status_name or document.status_id }}</dd>
     </dl>
+
+    {% if document.ocr_extracted_data %}
+      <hr>
+      <h6>Extracted Fields (editable)</h6>
+      <form method="POST" action="{{ url_for('candidate.document_details_save', document_id=document.document_id) }}">
+        {% for key, value in document.ocr_extracted_data.items() %}
+          <div class="mb-3">
+            <label class="form-label">{{ key.replace('_', ' ').title() }}</label>
+            <input type="text" name="field_{{ key }}" class="form-control" value="{{ value }}">
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </form>
+    {% endif %}
 
     <a href="{{ url_for('candidate.document_management') }}" class="btn btn-secondary">Back to Document Management</a>
   </div>
