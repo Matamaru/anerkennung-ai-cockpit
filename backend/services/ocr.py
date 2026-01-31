@@ -49,6 +49,7 @@ def _ensure_tesseract_env() -> None:
         candidates = [
             "/app/.apt/usr/share/tesseract-ocr/5/tessdata",
             "/app/.apt/usr/share/tesseract-ocr/4.00/tessdata",
+            "/app/.apt/usr/share/tessdata",
             "/usr/share/tesseract-ocr/5/tessdata",
             "/usr/share/tesseract-ocr/4.00/tessdata",
         ]
@@ -56,6 +57,8 @@ def _ensure_tesseract_env() -> None:
             if os.path.isdir(path):
                 os.environ["TESSDATA_PREFIX"] = path
                 break
+        if os.environ.get("DYNO"):
+            os.environ.setdefault("TESSDATA_PREFIX", "/app/.apt/usr/share/tesseract-ocr/5/tessdata")
     tesseract_bin = "/app/.apt/usr/bin/tesseract"
     if os.path.isfile(tesseract_bin):
         pytesseract.pytesseract.tesseract_cmd = tesseract_bin
@@ -89,6 +92,7 @@ def _ocr_mrz(im: Image.Image) -> str:
         arr = np.array(crop)
         # binarize for MRZ
         _, th = cv2.threshold(arr, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _ensure_tesseract_env()
         cfg = "--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<"
         return pytesseract.image_to_string(th, lang="eng", config=cfg)
     except Exception:
@@ -105,9 +109,13 @@ def _ocr_predictions(preprocessed_im: np.ndarray, lang: str = "eng+deu",
     # config for OCR
     cfg = f"--oem 3 --psm {psm}"
 
-    # Perform OCR
-    df = pytesseract.image_to_data(
-        preprocessed_im, lang=lang, config=cfg, output_type=pytesseract.Output.DATAFRAME)
+    _ensure_tesseract_env()
+    try:
+        # Perform OCR
+        df = pytesseract.image_to_data(
+            preprocessed_im, lang=lang, config=cfg, output_type=pytesseract.Output.DATAFRAME)
+    except Exception:
+        return []
 
     # clean dataframe
     df = df.dropna(subset=['text']) # remove rows with NaN text
@@ -134,9 +142,13 @@ def _ocr_text(preprocessed_im: np.ndarray, lang: str = "eng+deu",
     """
     # config for OCR
     cfg = f"--oem 3 --psm {psm}"
-    # Perform OCR
-    text = pytesseract.image_to_string(preprocessed_im, lang=lang, config=cfg)
-    return text    
+    _ensure_tesseract_env()
+    try:
+        # Perform OCR
+        text = pytesseract.image_to_string(preprocessed_im, lang=lang, config=cfg)
+        return text
+    except Exception:
+        return ""   
 
 
 def detect_mrz_lines(all_predictions: list) -> list:
