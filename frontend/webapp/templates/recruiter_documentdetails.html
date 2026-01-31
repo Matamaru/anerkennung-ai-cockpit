@@ -35,6 +35,27 @@
     </dl>
 
     {% set fields = document.ocr_extracted_data or {} %}
+    <hr>
+    <h6>Review</h6>
+    <form method="POST" action="{{ url_for('recruiter.document_review_save', document_id=document.document_id) }}">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Status</label>
+          <select name="review_status" class="form-select">
+            {% set current_status = document.review_status or 'pending' %}
+            <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="declined" {% if current_status == 'declined' %}selected{% endif %}>Declined</option>
+          </select>
+        </div>
+        <div class="col-md-8 mb-3">
+          <label class="form-label">Comment</label>
+          <input type="text" name="review_comment" class="form-control" value="{{ document.review_comment or '' }}">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Save Review</button>
+    </form>
+
     {% if form_fields %}
       <hr>
       <h6>Extracted Fields</h6>

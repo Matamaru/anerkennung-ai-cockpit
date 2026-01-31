@@ -22,6 +22,10 @@ class DocumentData(Model):
             ocr_extracted_data: dict = None, 
             layoutlm_full_text: str = None,
             layout_lm_data: dict = None,
+            review_status: str = None,
+            review_comment: str = None,
+            reviewed_by: str = None,
+            reviewed_at = None,
             id: str = None):
         self.id = id or str(uuid4())
         self.ocr_doc_type_prediction_str = ocr_doc_type_prediction
@@ -30,6 +34,10 @@ class DocumentData(Model):
         self.ocr_extracted_data = ocr_extracted_data
         self.layoutlm_full_text = layoutlm_full_text
         self.layout_lm_data = layout_lm_data
+        self.review_status = review_status
+        self.review_comment = review_comment
+        self.reviewed_by = reviewed_by
+        self.reviewed_at = reviewed_at
 
     def insert(self) -> tuple:
         values = (
@@ -40,6 +48,10 @@ class DocumentData(Model):
             self.ocr_extracted_data,
             self.layoutlm_full_text,
             self.layout_lm_data,
+            self.review_status,
+            self.review_comment,
+            self.reviewed_by,
+            self.reviewed_at,
         )
         try:
             with session_scope() as session:
@@ -51,6 +63,10 @@ class DocumentData(Model):
                     ocr_extracted_data=self.ocr_extracted_data,
                     layoutlm_full_text=self.layoutlm_full_text,
                     layout_lm_data=self.layout_lm_data,
+                    review_status=self.review_status,
+                    review_comment=self.review_comment,
+                    reviewed_by=self.reviewed_by,
+                    reviewed_at=self.reviewed_at,
                 )
                 session.add(orm_dd)
                 session.flush()
@@ -61,7 +77,7 @@ class DocumentData(Model):
     def update(self, values: tuple) -> tuple:
         try:
             with session_scope() as session:
-                orm_dd = session.query(DocumentDataORM).filter_by(id=values[6]).first()
+                orm_dd = session.query(DocumentDataORM).filter_by(id=values[10]).first()
                 if not orm_dd:
                     raise UpdateError("Document data not found.")
                 orm_dd.ocr_doc_type_prediction_str = values[0]
@@ -70,6 +86,10 @@ class DocumentData(Model):
                 orm_dd.ocr_extracted_data = values[3]
                 orm_dd.layoutlm_full_text = values[4]
                 orm_dd.layout_lm_data = values[5]
+                orm_dd.review_status = values[6]
+                orm_dd.review_comment = values[7]
+                orm_dd.reviewed_by = values[8]
+                orm_dd.reviewed_at = values[9]
                 session.flush()
                 return DocumentData._as_tuple(orm_dd)
         except Exception as error:
@@ -109,6 +129,10 @@ class DocumentData(Model):
                 ocr_extracted_data=tuple_data[4],
                 layoutlm_full_text=tuple_data[5],
                 layout_lm_data=tuple_data[6],
+                review_status=tuple_data[7],
+                review_comment=tuple_data[8],
+                reviewed_by=tuple_data[9],
+                reviewed_at=tuple_data[10],
             )
         return None
 
@@ -121,6 +145,10 @@ class DocumentData(Model):
             ocr_extracted_data=data.get("ocr_extracted_data"),
             layoutlm_full_text=data.get("layoutlm_full_text"),
             layout_lm_data=data.get("layout_lm_data"),
+            review_status=data.get("review_status"),
+            review_comment=data.get("review_comment"),
+            reviewed_by=data.get("reviewed_by"),
+            reviewed_at=data.get("reviewed_at"),
         )
 
     @staticmethod
@@ -133,4 +161,8 @@ class DocumentData(Model):
             orm_dd.ocr_extracted_data,
             orm_dd.layoutlm_full_text,
             orm_dd.layout_lm_data,
+            orm_dd.review_status,
+            orm_dd.review_comment,
+            orm_dd.reviewed_by,
+            orm_dd.reviewed_at,
         )

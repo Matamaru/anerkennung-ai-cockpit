@@ -192,6 +192,37 @@ def document_details(document_id):
     form_fields = _build_document_form_fields(document)
     return render_template("recruiter_documentdetails.html", document=document, form_fields=form_fields)
 
+
+@login_required
+@recruiter_required
+@recruiter_bp.post("/dashboard/recruiter/document/details/<document_id>/review")
+def document_review_save(document_id):
+    status = (request.form.get("review_status") or "").strip().lower()
+    comment = (request.form.get("review_comment") or "").strip()
+    if status not in ("approved", "declined", "pending"):
+        flash("Invalid review status.", "danger")
+        return redirect(url_for("recruiter.document_details", document_id=document_id))
+    if status == "declined" and not comment:
+        flash("Comment is required when declining.", "danger")
+        return redirect(url_for("recruiter.document_details", document_id=document_id))
+
+    with session_scope() as session:
+        doc = session.query(DocumentORM).filter_by(id=document_id).first()
+        if not doc or not doc.document_data_id:
+            flash("Document not found.", "danger")
+            return redirect(url_for("recruiter.candidate_management"))
+        dd = session.query(DocumentDataORM).filter_by(id=doc.document_data_id).first()
+        if not dd:
+            flash("Document data not found.", "danger")
+            return redirect(url_for("recruiter.candidate_management"))
+        dd.review_status = status
+        dd.review_comment = comment or None
+        dd.reviewed_by = current_user.id
+        dd.reviewed_at = func.now()
+
+    flash("Review saved.", "success")
+    return redirect(url_for("recruiter.document_details", document_id=document_id))
+
 @login_required
 @recruiter_required
 @recruiter_bp.route("/dashboard/recruiter/contact-recruiters")

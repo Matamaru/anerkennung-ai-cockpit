@@ -69,6 +69,10 @@ class DocumentData(Base):
     ocr_extracted_data: Mapped[dict | None] = mapped_column(JSON)
     layoutlm_full_text: Mapped[str | None] = mapped_column(Text)
     layout_lm_data: Mapped[dict | None] = mapped_column(JSON)
+    review_status: Mapped[str | None] = mapped_column(String(50))
+    review_comment: Mapped[str | None] = mapped_column(Text)
+    reviewed_by: Mapped[str | None] = mapped_column(String(36))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class Status(Base):

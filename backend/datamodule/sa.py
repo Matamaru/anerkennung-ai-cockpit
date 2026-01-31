@@ -71,6 +71,44 @@ def _ensure_requirements_allow_multiple_column() -> None:
 _ensure_requirements_allow_multiple_column()
 
 
+def _ensure_document_review_columns() -> None:
+    try:
+        with engine.begin() as conn:
+            if conn.dialect.name == "sqlite":
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(_document_datas)")).fetchall()]
+                if "review_status" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN review_status TEXT"))
+                if "review_comment" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN review_comment TEXT"))
+                if "reviewed_by" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN reviewed_by VARCHAR(36)"))
+                if "reviewed_at" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN reviewed_at TIMESTAMP"))
+            else:
+                cols = {
+                    row[0]
+                    for row in conn.execute(
+                        text(
+                            "SELECT column_name FROM information_schema.columns "
+                            "WHERE table_name = '_document_datas'"
+                        )
+                    ).fetchall()
+                }
+                if "review_status" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN review_status TEXT"))
+                if "review_comment" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN review_comment TEXT"))
+                if "reviewed_by" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN reviewed_by VARCHAR(36)"))
+                if "reviewed_at" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN reviewed_at TIMESTAMP"))
+    except Exception:
+        pass
+
+
+_ensure_document_review_columns()
+
+
 @contextmanager
 def session_scope() -> Iterator:
     session = SessionLocal()
