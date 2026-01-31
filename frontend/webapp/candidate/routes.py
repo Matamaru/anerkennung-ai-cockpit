@@ -34,6 +34,7 @@ from backend.services.ocr import (
 from backend.utils.s3_docs import upload_bytes, presign_url, is_s3_uri
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from sqlalchemy import func
 import difflib
 import re
 import os
