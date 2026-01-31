@@ -37,6 +37,10 @@ def _download_prefix(s3, uri: str, dest: Path) -> None:
 
 
 def main() -> int:
+    if os.getenv("CAESAR_FETCH_MODELS_ON_RELEASE", "").lower() not in ("1", "true", "yes"):
+        print("CAESAR_FETCH_MODELS_ON_RELEASE is not enabled. Skipping model downloads.")
+        return 0
+
     s3 = boto3.client("s3")
 
     passport_dest = LOCAL_BASE / "passport_layoutlmv3-token"
