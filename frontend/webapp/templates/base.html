@@ -23,12 +23,61 @@
   <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}"/>
 
   <style>
-      :root { --brand-text: #222; }
+      :root {
+          --brand-text: #1f2937;
+          --brand-primary: #1f6fd6;
+          --brand-primary-dark: #1558b0;
+          --brand-secondary: #475569;
+          --brand-info: #0ea5a5;
+      }
       body { --bs-body-color: var(--brand-text); }
 
       /* Make space for fixed navbar */
       body {
           padding-top: 4.5rem;
+      }
+
+      .btn {
+          border-radius: 0.5rem;
+          font-weight: 600;
+      }
+      .btn-primary {
+          background-color: var(--brand-primary);
+          border-color: var(--brand-primary);
+      }
+      .btn-primary:hover {
+          background-color: var(--brand-primary-dark);
+          border-color: var(--brand-primary-dark);
+      }
+      .btn-secondary {
+          background-color: var(--brand-secondary);
+          border-color: var(--brand-secondary);
+      }
+      .btn-info {
+          background-color: var(--brand-info);
+          border-color: var(--brand-info);
+          color: #fff;
+      }
+      .btn-info:hover {
+          background-color: #0b8b8b;
+          border-color: #0b8b8b;
+          color: #fff;
+      }
+      .badge {
+          border-radius: 999px;
+          font-weight: 600;
+          text-transform: capitalize;
+      }
+      .dm-scroll {
+          max-height: 70vh;
+          overflow-y: auto;
+      }
+      .doc-badges {
+          min-width: 120px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.25rem;
       }
   </style>
 
@@ -179,4 +228,3 @@
 
 </body>
 </html>
-
