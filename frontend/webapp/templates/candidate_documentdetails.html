@@ -20,6 +20,13 @@
       <dt class="col-sm-3">File Path</dt>
       <dd class="col-sm-9">{{ document.filepath }}</dd>
 
+      <dt class="col-sm-3">Document</dt>
+      <dd class="col-sm-9">
+        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('candidate.view_document', document_id=document.document_id) }}" target="_blank" rel="noopener">
+          Open Document
+        </a>
+      </dd>
+
       <dt class="col-sm-3">OCR Text</dt>
       <dd class="col-sm-9">{{ document.ocr_full_text }}</dd>
 

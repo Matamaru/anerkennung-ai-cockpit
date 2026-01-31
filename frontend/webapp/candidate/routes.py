@@ -8,7 +8,7 @@
 #=== Imports
 from uuid import uuid4
 from types import SimpleNamespace
-from flask import render_template, request, redirect, url_for, flash, current_app
+from flask import render_template, request, redirect, url_for, flash, current_app, send_file
 from flask_login import login_required, current_user
 from backend.datamodule.models.document import Document
 from frontend.webapp.candidate import candidate_bp
@@ -237,7 +237,7 @@ def document_management():
         if not fields and getattr(ocr_res, "fields", None):
             fields = ocr_res.fields
         ocr_text = getattr(ocr_res, "ocr_text", "") or ""
-        current_app.logger.info(
+        current_app.logger.warning(
             "OCR result (%s) for %s: doc_type=%s text_len=%s fields=%s",
             ocr_source,
             filename,
@@ -341,6 +341,29 @@ def document_details(document_id):
     document = get_document_details(document_id)
     form_fields = _build_document_form_fields(document)
     return render_template("candidate_documentdetails.html", document=document, form_fields=form_fields)
+
+
+@login_required
+@candidate_required
+@candidate_bp.get("/dashboard/candidate/documentmanagement/view/<document_id>")
+def view_document(document_id):
+    with session_scope() as session:
+        doc = session.query(DocumentORM).filter_by(id=document_id).first()
+        if not doc:
+            flash("Document not found.", "danger")
+            return redirect(url_for("candidate.document_management"))
+        if doc.user_id and str(doc.user_id) != str(current_user.id):
+            flash("Not allowed to view this document.", "danger")
+            return redirect(url_for("candidate.document_management"))
+        file_row = session.query(File).filter_by(id=doc.file_id).first() if doc.file_id else None
+        filepath = file_row.filepath if file_row else None
+        filename = file_row.filename if file_row else "document"
+
+    if not filepath or not os.path.exists(filepath):
+        flash("Document file not found.", "danger")
+        return redirect(url_for("candidate.document_details", document_id=document_id))
+
+    return send_file(filepath, as_attachment=False, download_name=filename)
 
 
 @login_required
