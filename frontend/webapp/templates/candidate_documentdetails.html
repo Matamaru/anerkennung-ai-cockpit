@@ -71,7 +71,12 @@
               {% if f.profile_value %}
                 <div class="d-flex align-items-center gap-2 mt-1">
                   {% if f.profile_match_score is not none and f.profile_match_score >= 0.85 %}
-                    <span class="badge bg-success">Matches profile</span>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary js-use-profile"
+                            data-target="field_{{ f.key }}"
+                            data-value="{{ f.profile_value }}">
+                      Matches Profile
+                    </button>
                   {% else %}
                     <button type="button"
                             class="btn btn-sm btn-outline-secondary js-use-profile"
