@@ -67,6 +67,21 @@
             <div class="col-md-6 mb-3">
               <label class="form-label">{{ f.label }}</label>
               <input type="text" name="field_{{ f.key }}" class="form-control" value="{{ f.value }}">
+              {% if f.profile_value %}
+                <div class="d-flex align-items-center gap-2 mt-1">
+                  {% if f.profile_match_score is not none and f.profile_match_score >= 0.85 %}
+                    <span class="badge bg-success">Matches profile</span>
+                  {% else %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary js-use-profile"
+                            data-target="field_{{ f.key }}"
+                            data-value="{{ f.profile_value }}">
+                      Use profile value
+                    </button>
+                  {% endif %}
+                  <small class="text-muted">Profile: {{ f.profile_value }}</small>
+                </div>
+              {% endif %}
             </div>
           {% endfor %}
         </div>

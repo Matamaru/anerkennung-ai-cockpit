@@ -1,0 +1,72 @@
+<!--  Application:    Anerkennung AI Cockpit                                -->
+<!--  Module:         templates.candidate_profile                           -->
+<!--  Author:         Heiko Matamaru, IGS                                   -->
+<!--  Version:        0.0.1                                                 -->
+{% extends 'base.html' %}
+
+{% block title %} Candidate Profile {% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">My Profile</h5>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm btn-secondary">Back</a>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <form method="POST">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">First Name(s)</label>
+              <input type="text" name="first_name" class="form-control" value="{{ profile.first_name or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Last Name</label>
+              <input type="text" name="last_name" class="form-control" value="{{ profile.last_name or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Birth Date</label>
+              <input type="text" name="birth_date" class="form-control" value="{{ profile.birth_date or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Nationality</label>
+              <input type="text" name="nationality" class="form-control" value="{{ profile.nationality or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Phone</label>
+              <input type="text" name="phone" class="form-control" value="{{ profile.phone or '' }}">
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Address Line 1</label>
+              <input type="text" name="address_line1" class="form-control" value="{{ profile.address_line1 or '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Address Line 2</label>
+              <input type="text" name="address_line2" class="form-control" value="{{ profile.address_line2 or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Postal Code</label>
+              <input type="text" name="postal_code" class="form-control" value="{{ profile.postal_code or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">City</label>
+              <input type="text" name="city" class="form-control" value="{{ profile.city or '' }}">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Country</label>
+              <input type="text" name="country" class="form-control" value="{{ profile.country or '' }}">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Save Profile</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

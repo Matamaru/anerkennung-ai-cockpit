@@ -23,7 +23,7 @@ from backend.datamodule.models.file import File as FileModel
 from backend.datamodule.models.file_type import FileType
 from backend.datamodule.models.status import Status
 from backend.datamodule.models.document_type import DocumentType as DocumentTypeModel
-from backend.datamodule.orm import AppDoc, Document as DocumentORM, DocumentData as DocumentDataORM, DocumentType, File, Status as StatusORM, Requirement
+from backend.datamodule.orm import AppDoc, Document as DocumentORM, DocumentData as DocumentDataORM, DocumentType, File, Status as StatusORM, Requirement, UserProfile as UserProfileORM
 from backend.datamodule.sa import session_scope
 from backend.services.ocr import (
     analyze_bytes_with_layoutlm_fields,
@@ -34,6 +34,7 @@ from backend.services.ocr import (
 from backend.utils.s3_docs import upload_bytes, presign_url, is_s3_uri
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import difflib
 import re
 import os
 import requests
@@ -385,8 +386,14 @@ def document_management():
 def document_details(document_id):
     # Get the details of the selected document
     document = get_document_details(document_id)
-    form_fields = _build_document_form_fields(document)
-    return render_template("candidate_documentdetails.html", document=document, form_fields=form_fields)
+    profile = _get_user_profile(current_user.id)
+    form_fields = _build_document_form_fields(document, profile)
+    return render_template(
+        "candidate_documentdetails.html",
+        document=document,
+        form_fields=form_fields,
+        profile=profile,
+    )
 
 
 @login_required
@@ -653,31 +660,93 @@ def _document_form_schema(doc_type_name: str | None) -> list[dict]:
     return []
 
 
-def _build_document_form_fields(document: dict | None) -> list[dict]:
+def _build_document_form_fields(document: dict | None, profile: dict | None = None) -> list[dict]:
     if not document:
         return []
     fields = document.get("ocr_extracted_data") or {}
     schema = _document_form_schema(document.get("document_type_name"))
     if not schema:
-        return [
+        raw_fields = [
             {"key": key, "label": key.replace("_", " ").title(), "value": str(value)}
             for key, value in fields.items()
         ]
+        return [_attach_profile_suggestion(f, profile) for f in raw_fields]
     out: list[dict] = []
     for entry in schema:
         key = entry["key"]
-        out.append(
-            {
-                "key": key,
-                "label": entry["label"],
-                "value": _sanitize_field_value(
-                    key,
-                    _pick_field_value(fields, entry.get("source_keys", [key])),
-                    fields,
-                ),
-            }
-        )
+        field = {
+            "key": key,
+            "label": entry["label"],
+            "value": _sanitize_field_value(
+                key,
+                _pick_field_value(fields, entry.get("source_keys", [key])),
+                fields,
+            ),
+        }
+        out.append(_attach_profile_suggestion(field, profile))
     return out
+
+
+def _get_user_profile(user_id: str) -> dict | None:
+    with session_scope() as session:
+        row = session.query(UserProfileORM).filter_by(user_id=user_id).first()
+        if not row:
+            return None
+        return {
+            "user_id": row.user_id,
+            "first_name": row.first_name,
+            "last_name": row.last_name,
+            "birth_date": row.birth_date,
+            "nationality": row.nationality,
+            "address_line1": row.address_line1,
+            "address_line2": row.address_line2,
+            "postal_code": row.postal_code,
+            "city": row.city,
+            "country": row.country,
+            "phone": row.phone,
+        }
+
+
+def _normalize_compare(value: str) -> str:
+    value = (value or "").lower()
+    value = re.sub(r"[^a-z0-9]", "", value)
+    return value
+
+
+def _similarity(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    return difflib.SequenceMatcher(None, _normalize_compare(a), _normalize_compare(b)).ratio()
+
+
+def _profile_value_for_field(field_key: str, profile: dict | None) -> str | None:
+    if not profile:
+        return None
+    key = (field_key or "").lower()
+    if key in ("given_names", "holder_first_name"):
+        return profile.get("first_name")
+    if key in ("surname", "holder_last_name"):
+        return profile.get("last_name")
+    if key in ("holder_name", "full_name"):
+        first = profile.get("first_name") or ""
+        last = profile.get("last_name") or ""
+        full = f"{first} {last}".strip()
+        return full or None
+    if key in ("birth_date", "date_of_birth"):
+        return profile.get("birth_date")
+    if key == "nationality":
+        return profile.get("nationality")
+    return None
+
+
+def _attach_profile_suggestion(field: dict, profile: dict | None) -> dict:
+    profile_value = _profile_value_for_field(field.get("key", ""), profile)
+    field_value = field.get("value") or ""
+    if profile_value:
+        score = _similarity(field_value, profile_value) if field_value else 0.0
+        field["profile_value"] = profile_value
+        field["profile_match_score"] = score
+    return field
 
 
 def _map_doc_type(doc_type: str, requirement_id: str) -> str | None:
@@ -917,6 +986,39 @@ def applicationsmanagement_delete(app_id):
     else:
         flash(f"Application {app_id} could not be deleted.")
     return redirect(url_for("candidate.applicationsmanagement_new"))
+
+
+@login_required
+@candidate_required
+@candidate_bp.route("/dashboard/candidate/profile", methods=["GET", "POST"])
+def candidate_profile():
+    if request.method == "POST":
+        payload = {
+            "first_name": request.form.get("first_name") or None,
+            "last_name": request.form.get("last_name") or None,
+            "birth_date": request.form.get("birth_date") or None,
+            "nationality": request.form.get("nationality") or None,
+            "address_line1": request.form.get("address_line1") or None,
+            "address_line2": request.form.get("address_line2") or None,
+            "postal_code": request.form.get("postal_code") or None,
+            "city": request.form.get("city") or None,
+            "country": request.form.get("country") or None,
+            "phone": request.form.get("phone") or None,
+        }
+        with session_scope() as session:
+            profile = session.query(UserProfileORM).filter_by(user_id=current_user.id).first()
+            if not profile:
+                profile = UserProfileORM(user_id=current_user.id, **payload)
+                session.add(profile)
+            else:
+                for key, value in payload.items():
+                    setattr(profile, key, value)
+            profile.updated_at = func.now()
+        flash("Profile updated.", "success")
+        return redirect(url_for("candidate.candidate_profile"))
+
+    profile = _get_user_profile(current_user.id) or {}
+    return render_template("candidate_profile.html", profile=profile)
 
 
 @login_required

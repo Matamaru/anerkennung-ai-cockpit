@@ -109,6 +109,61 @@ def _ensure_document_review_columns() -> None:
 _ensure_document_review_columns()
 
 
+def _ensure_user_profile_table() -> None:
+    try:
+        with engine.begin() as conn:
+            if conn.dialect.name == "sqlite":
+                conn.execute(
+                    text(
+                        "CREATE TABLE IF NOT EXISTS _user_profiles ("
+                        "user_id VARCHAR(255) PRIMARY KEY, "
+                        "first_name VARCHAR(255), "
+                        "last_name VARCHAR(255), "
+                        "birth_date VARCHAR(50), "
+                        "nationality VARCHAR(100), "
+                        "address_line1 VARCHAR(255), "
+                        "address_line2 VARCHAR(255), "
+                        "postal_code VARCHAR(50), "
+                        "city VARCHAR(100), "
+                        "country VARCHAR(100), "
+                        "phone VARCHAR(50), "
+                        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        ")"
+                    )
+                )
+            else:
+                exists = conn.execute(
+                    text(
+                        "SELECT 1 FROM information_schema.tables "
+                        "WHERE table_name = '_user_profiles'"
+                    )
+                ).fetchone()
+                if not exists:
+                    conn.execute(
+                        text(
+                            "CREATE TABLE _user_profiles ("
+                            "user_id VARCHAR(255) PRIMARY KEY REFERENCES _users(user_id) ON DELETE CASCADE, "
+                            "first_name VARCHAR(255), "
+                            "last_name VARCHAR(255), "
+                            "birth_date VARCHAR(50), "
+                            "nationality VARCHAR(100), "
+                            "address_line1 VARCHAR(255), "
+                            "address_line2 VARCHAR(255), "
+                            "postal_code VARCHAR(50), "
+                            "city VARCHAR(100), "
+                            "country VARCHAR(100), "
+                            "phone VARCHAR(50), "
+                            "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                            ")"
+                        )
+                    )
+    except Exception:
+        pass
+
+
+_ensure_user_profile_table()
+
+
 @contextmanager
 def session_scope() -> Iterator:
     session = SessionLocal()

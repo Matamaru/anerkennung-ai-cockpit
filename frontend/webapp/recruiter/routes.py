@@ -15,6 +15,7 @@ from backend.datamodule.orm import (
     Application as ApplicationORM,
     Role as RoleORM,
     User as UserORM,
+    UserProfile as UserProfileORM,
     AppDoc,
     Document as DocumentORM,
     DocumentData as DocumentDataORM,
@@ -224,6 +225,56 @@ def document_review_save(document_id):
 
     flash("Review saved.", "success")
     return redirect(url_for("recruiter.document_details", document_id=document_id))
+
+
+@login_required
+@recruiter_required
+@recruiter_bp.route("/dashboard/recruiter/profile", methods=["GET", "POST"])
+def recruiter_profile():
+    if request.method == "POST":
+        payload = {
+            "first_name": request.form.get("first_name") or None,
+            "last_name": request.form.get("last_name") or None,
+            "birth_date": request.form.get("birth_date") or None,
+            "nationality": request.form.get("nationality") or None,
+            "address_line1": request.form.get("address_line1") or None,
+            "address_line2": request.form.get("address_line2") or None,
+            "postal_code": request.form.get("postal_code") or None,
+            "city": request.form.get("city") or None,
+            "country": request.form.get("country") or None,
+            "phone": request.form.get("phone") or None,
+        }
+        with session_scope() as session:
+            profile = session.query(UserProfileORM).filter_by(user_id=current_user.id).first()
+            if not profile:
+                profile = UserProfileORM(user_id=current_user.id, **payload)
+                session.add(profile)
+            else:
+                for key, value in payload.items():
+                    setattr(profile, key, value)
+            profile.updated_at = func.now()
+        flash("Profile updated.", "success")
+        return redirect(url_for("recruiter.recruiter_profile"))
+
+    profile = {}
+    with session_scope() as session:
+        row = session.query(UserProfileORM).filter_by(user_id=current_user.id).first()
+        if row:
+            profile = {
+                "user_id": row.user_id,
+                "first_name": row.first_name,
+                "last_name": row.last_name,
+                "birth_date": row.birth_date,
+                "nationality": row.nationality,
+                "address_line1": row.address_line1,
+                "address_line2": row.address_line2,
+                "postal_code": row.postal_code,
+                "city": row.city,
+                "country": row.country,
+                "phone": row.phone,
+            }
+    return render_template("recruiter_profile.html", profile=profile)
+
 
 @login_required
 @recruiter_required

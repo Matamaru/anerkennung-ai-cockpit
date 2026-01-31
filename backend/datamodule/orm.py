@@ -31,6 +31,25 @@ class User(Base):
     role = relationship("Role")
 
 
+class UserProfile(Base):
+    __tablename__ = "_user_profiles"
+
+    user_id: Mapped[str] = mapped_column(String(255), ForeignKey("_users.user_id"), primary_key=True)
+    first_name: Mapped[str | None] = mapped_column(String(255))
+    last_name: Mapped[str | None] = mapped_column(String(255))
+    birth_date: Mapped[str | None] = mapped_column(String(50))
+    nationality: Mapped[str | None] = mapped_column(String(100))
+    address_line1: Mapped[str | None] = mapped_column(String(255))
+    address_line2: Mapped[str | None] = mapped_column(String(255))
+    postal_code: Mapped[str | None] = mapped_column(String(50))
+    city: Mapped[str | None] = mapped_column(String(100))
+    country: Mapped[str | None] = mapped_column(String(100))
+    phone: Mapped[str | None] = mapped_column(String(50))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User")
+
+
 class FileType(Base):
     __tablename__ = "_file_types"
 

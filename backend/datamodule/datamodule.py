@@ -26,6 +26,7 @@ from backend.datamodule.models.document_data_sql import CREATE_TABLE_DOCUMENT_DA
 from backend.datamodule.models.document_sql import CREATE_TABLE_DOCUMENT
 from backend.datamodule.models.state_sql import CREATE_TABLE_STATES
 from backend.datamodule.models.requirements_sql import CREATE_TABLE_REQUIREMENTS
+from backend.datamodule.models.user_profile_sql import CREATE_TABLE_USER_PROFILE
 
 #=== Defs and classes
 
@@ -80,6 +81,8 @@ class DataBase:
 		self.cursor.execute(CREATE_TABLE_ROLES)
 		# Create users table	
 		self.cursor.execute(CREATE_TABLE_USERS)
+		# Create user profiles table
+		self.cursor.execute(CREATE_TABLE_USER_PROFILE)
 
 		#=== Document Related Tables	
 		# create table file types
