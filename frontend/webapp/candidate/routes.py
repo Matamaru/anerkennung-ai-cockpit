@@ -70,7 +70,7 @@ def get_documents_for_application(application_id) -> list[Document]:
                     DocumentType.name.label("document_type_name"),
                     File.filename,
                     File.filepath,
-                    DocumentData.ocr_full_text,
+                    DocumentDataORM.ocr_full_text,
                     DocumentORM.status_id,
                     StatusORM.name.label("status_name"),
                     AppDoc.requirements_id,
@@ -78,7 +78,7 @@ def get_documents_for_application(application_id) -> list[Document]:
                 .join(DocumentORM, AppDoc.document_id == DocumentORM.id)
                 .join(DocumentType, DocumentORM.document_type_id == DocumentType.id)
                 .join(File, DocumentORM.file_id == File.id)
-                .join(DocumentData, DocumentORM.document_data_id == DocumentData.id)
+                .join(DocumentDataORM, DocumentORM.document_data_id == DocumentDataORM.id)
                 .join(StatusORM, DocumentORM.status_id == StatusORM.id, isouter=True)
                 .filter(AppDoc.application_id == application_id)
                 .all()
@@ -139,15 +139,15 @@ def get_document_details(document_id) -> Document:
                     DocumentType.name.label("document_type_name"),
                     File.filename,
                     File.filepath,
-                    DocumentData.ocr_full_text,
-                    DocumentData.ocr_extracted_data,
+                    DocumentDataORM.ocr_full_text,
+                    DocumentDataORM.ocr_extracted_data,
                     DocumentORM.last_modified,
                     DocumentORM.status_id,
                     StatusORM.name.label("status_name"),
                 )
                 .join(DocumentType, DocumentORM.document_type_id == DocumentType.id)
                 .join(File, DocumentORM.file_id == File.id)
-                .join(DocumentData, DocumentORM.document_data_id == DocumentData.id)
+                .join(DocumentDataORM, DocumentORM.document_data_id == DocumentDataORM.id)
                 .join(StatusORM, DocumentORM.status_id == StatusORM.id, isouter=True)
                 .filter(DocumentORM.id == document_id)
                 .first()
