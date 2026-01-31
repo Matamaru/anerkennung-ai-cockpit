@@ -252,7 +252,7 @@ def document_management():
         filetype_tuple = FileType.get_by_name(filetype_name)
         filetype = FileType.from_tuple(filetype_tuple) if filetype_tuple else None
 
-        doc_hint = _doc_hint_from_requirement(requirement_id)
+        doc_hint = _doc_hint_from_requirement(requirement_id) or _doc_hint_from_filename(filename)
         token_model_dir = _select_token_model_dir(doc_hint)
         ocr_service_url = os.getenv("OCR_SERVICE_URL")
         ocr_res = None
@@ -790,6 +790,15 @@ def _doc_hint_from_requirement(requirement_id: str) -> str | None:
     if "id" in name or "passport" in name:
         return "passport"
     if "qualification" in name or "diploma" in name or "certificate" in name or "transcript" in name:
+        return "diploma"
+    return None
+
+
+def _doc_hint_from_filename(filename: str) -> str | None:
+    name = (filename or "").lower()
+    if "passport" in name or name.startswith("pass"):
+        return "passport"
+    if "diploma" in name or "degree" in name or "certificate" in name or "transcript" in name:
         return "diploma"
     return None
 
