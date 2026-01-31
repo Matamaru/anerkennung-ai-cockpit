@@ -407,17 +407,43 @@ def _pick_field_value(fields: dict, keys: list[str], default: str = "") -> str:
     return default
 
 
-def _sanitize_field_value(key: str, value: str) -> str:
+def _sanitize_field_value(key: str, value: str, fields: dict) -> str:
     cleaned = (value or "").strip()
     if not cleaned:
         return ""
     lower_key = key.lower()
+    if fields.get("mrz_checksum_ok") is False and lower_key in {
+        "birth_date",
+        "expiry_date",
+        "passport_number",
+        "nationality",
+        "issuing_country",
+        "personal_number",
+        "sex",
+    }:
+        return ""
     if "name" in lower_key:
         cleaned = cleaned.replace("<", " ")
         cleaned = " ".join(cleaned.split())
     elif any(token in lower_key for token in ("nationality", "issuing_country", "passport_number", "personal_number", "sex")):
         cleaned = cleaned.replace("<", "")
         cleaned = re.sub(r"[^A-Za-z0-9]", "", cleaned)
+        if "nationality" in lower_key or "issuing_country" in lower_key:
+            cleaned = cleaned.upper()
+            if not re.fullmatch(r"[A-Z]{3}", cleaned or ""):
+                return ""
+        elif "passport_number" in lower_key:
+            cleaned = cleaned.upper()
+            if not re.fullmatch(r"[A-Z0-9]{6,9}", cleaned or ""):
+                return ""
+        elif "personal_number" in lower_key:
+            cleaned = cleaned.upper()
+            if cleaned and not re.fullmatch(r"[A-Z0-9]{1,14}", cleaned):
+                return ""
+        elif lower_key == "sex":
+            cleaned = cleaned.upper()
+            if cleaned and cleaned not in {"M", "F", "X"}:
+                return ""
     elif "date" in lower_key:
         cleaned = cleaned.replace("<", "")
         digits = re.sub(r"[^0-9]", "", cleaned)
@@ -428,8 +454,12 @@ def _sanitize_field_value(key: str, value: str) -> str:
             current_yy = datetime.utcnow().year % 100
             century = 2000 if yy <= current_yy else 1900
             cleaned = f"{century + yy:04d}-{mm}-{dd}"
+        elif len(digits) == 8:
+            cleaned = f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}"
         else:
             cleaned = digits or cleaned
+        if cleaned and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
+            return ""
     else:
         cleaned = cleaned.replace("<", "").strip()
     return cleaned
@@ -487,6 +517,7 @@ def _build_document_form_fields(document: dict | None) -> list[dict]:
                 "value": _sanitize_field_value(
                     key,
                     _pick_field_value(fields, entry.get("source_keys", [key])),
+                    fields,
                 ),
             }
         )
