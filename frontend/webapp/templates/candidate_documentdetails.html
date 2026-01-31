@@ -62,6 +62,7 @@
         {% if back_app_id %}
           <input type="hidden" name="application_id" value="{{ back_app_id }}">
         {% endif %}
+        <input type="hidden" name="profile_fields" value="">
         <div class="row">
           {% for f in form_fields %}
             <div class="col-md-6 mb-3">

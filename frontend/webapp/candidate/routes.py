@@ -433,11 +433,22 @@ def view_document(document_id):
 def document_details_save(document_id):
     fields = {k: v for k, v in request.form.items() if k.startswith("field_")}
     application_id = request.form.get("application_id")
+    profile_fields_raw = request.form.get("profile_fields") or ""
     payload = {}
     for key, value in fields.items():
         cleaned = (value or "").strip()
         if cleaned:
             payload[key.replace("field_", "")] = cleaned
+
+    profile_keys = [k.strip() for k in profile_fields_raw.split(",") if k.strip()]
+    if profile_keys:
+        profile = _get_user_profile(current_user.id)
+        for key in profile_keys:
+            if key in payload:
+                continue
+            profile_value = _profile_value_for_field(key, profile)
+            if profile_value:
+                payload[key] = profile_value
     if not payload:
         flash("No fields submitted.", "warning")
         return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))

@@ -26,6 +26,15 @@ document.addEventListener("DOMContentLoaded", () => {
         input.value = value;
         input.focus();
       }
+      const profileFieldInput = scope.querySelector('input[name="profile_fields"]');
+      if (profileFieldInput) {
+        const key = targetName.replace(/^field_/, "");
+        const current = (profileFieldInput.value || "").split(",").map((v) => v.trim()).filter(Boolean);
+        if (!current.includes(key)) {
+          current.push(key);
+          profileFieldInput.value = current.join(",");
+        }
+      }
     });
   });
 });
