@@ -225,6 +225,10 @@ def document_management():
                 ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
         if ocr_res is None:
             ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
+        if not fields and getattr(ocr_res, "fields", None):
+            fields = ocr_res.fields
+        if not fields:
+            current_app.logger.warning("OCR extracted fields are empty for %s", filename)
         doc_type_name = _map_doc_type(ocr_res.doc_type, requirement_id)
         doc_type_tuple = DocumentTypeModel.get_by_name(doc_type_name) if doc_type_name else None
         doc_type = DocumentTypeModel.from_tuple(doc_type_tuple) if doc_type_tuple else None
