@@ -44,6 +44,22 @@ def _from_cv(arr: np.ndarray) -> Image.Image:
     """Convert OpenCV BGR format to PIL Image."""
     return Image.fromarray(cv2.cvtColor(arr, cv2.COLOR_BGR2RGB))
 
+def _ensure_tesseract_env() -> None:
+    if not os.environ.get("TESSDATA_PREFIX"):
+        candidates = [
+            "/app/.apt/usr/share/tesseract-ocr/5/tessdata",
+            "/app/.apt/usr/share/tesseract-ocr/4.00/tessdata",
+            "/usr/share/tesseract-ocr/5/tessdata",
+            "/usr/share/tesseract-ocr/4.00/tessdata",
+        ]
+        for path in candidates:
+            if os.path.isdir(path):
+                os.environ["TESSDATA_PREFIX"] = path
+                break
+    tesseract_bin = "/app/.apt/usr/bin/tesseract"
+    if os.path.isfile(tesseract_bin):
+        pytesseract.pytesseract.tesseract_cmd = tesseract_bin
+
 def preprocess_image(im: Image.Image) -> np.ndarray:
     """Preprocess image for better OCR results.
     :param image_path: Path to the image file.
@@ -260,6 +276,7 @@ class OcrResult:
 
 
 def analyze_bytes(file_bytes: bytes) -> OcrResult:
+    _ensure_tesseract_env()
     if caesar_analyze_bytes is not None:
         res = caesar_analyze_bytes(file_bytes, lang="eng+deu")
         rules_paths = _resolve_rules_paths(file_bytes)
