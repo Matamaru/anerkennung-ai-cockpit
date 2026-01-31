@@ -132,11 +132,19 @@ def candidate_management():
             }
         )
 
+    selected_user_view = None
+    if selected_user:
+        selected_user_view = {
+            "user_id": selected_user.user_id,
+            "username": selected_user.username,
+            "email": selected_user.email,
+        }
+
     return render_template(
         "recruiter_candidatemanagement.html",
         candidates=candidates,
         query=search,
-        selected_user=selected_user,
+        selected_user=selected_user_view,
         selected_app_id=selected_app_id,
         applications=applications_view,
         documents=documents_view,
