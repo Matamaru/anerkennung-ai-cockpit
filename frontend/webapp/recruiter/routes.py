@@ -83,6 +83,7 @@ def candidate_management():
                         DocumentType.name.label("document_type_name"),
                         File.filename,
                         DocumentDataORM.ocr_full_text,
+                        DocumentDataORM.review_status,
                         StatusORM.name.label("status_name"),
                     )
                     .join(DocumentORM, AppDoc.document_id == DocumentORM.id)
@@ -134,6 +135,7 @@ def candidate_management():
                 "filename": row.filename,
                 "ocr_full_text": row.ocr_full_text,
                 "status_name": row.status_name,
+                "review_status": row.review_status,
             }
         )
 

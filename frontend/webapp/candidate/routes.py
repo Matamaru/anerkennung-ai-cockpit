@@ -79,6 +79,7 @@ def get_documents_for_application(application_id) -> list[Document]:
                     File.filename,
                     File.filepath,
                     DocumentDataORM.ocr_full_text,
+                    DocumentDataORM.review_status,
                     DocumentORM.status_id,
                     StatusORM.name.label("status_name"),
                     AppDoc.requirements_id,
@@ -101,6 +102,7 @@ def get_documents_for_application(application_id) -> list[Document]:
                         "filename": row.filename,
                         "filepath": row.filepath,
                         "ocr_full_text": row.ocr_full_text,
+                        "review_status": row.review_status,
                         "status_id": row.status_id,
                         "status_name": row.status_name,
                         "requirements_id": row.requirements_id,
@@ -349,20 +351,31 @@ def document_management():
     # Get the application_id from the URL or session
     application_id = request.args.get('application_id')
 
-    if not application_id:
-        return redirect(url_for('candidate.applications_management'))  # If no application selected, redirect to applications page
+    app_tuple = Application.get_by_user_id(current_user.id)
+    applications = [Application.from_tuple(a) for a in app_tuple] if app_tuple else []
+    professions, countries, states = _load_select_data()
+    applications = _attach_display_data(applications, professions, countries, states)
 
-    # Get requirements associated with the selected application
-    requirements = get_requirements_for_application(application_id)
+    requirements = []
+    documents = []
+    review_alerts = []
+    if application_id:
+        # Get requirements associated with the selected application
+        requirements = get_requirements_for_application(application_id)
 
-    # Get documents associated with the selected application
-    documents = get_documents_for_application(application_id)
+        # Get documents associated with the selected application
+        documents = get_documents_for_application(application_id)
+        review_alerts = [
+            d for d in documents if (d.get("review_status") or "pending") in ("approved", "declined")
+        ]
 
     return render_template(
         "candidate_documentmanagement.html",
+        applications=applications,
         requirements=requirements,
         documents=documents,
-        application_id=application_id  # Pass the application_id to the template
+        application_id=application_id,  # Pass the application_id to the template
+        review_alerts=review_alerts,
     )
 
 
@@ -411,26 +424,27 @@ def view_document(document_id):
 @candidate_bp.post("/dashboard/candidate/documentmanagement/details/<document_id>/save")
 def document_details_save(document_id):
     fields = {k: v for k, v in request.form.items() if k.startswith("field_")}
+    application_id = request.form.get("application_id")
     if not fields:
         flash("No fields submitted.", "warning")
-        return redirect(url_for("candidate.document_details", document_id=document_id))
+        return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
 
     payload = {k.replace("field_", ""): v for k, v in fields.items()}
     with session_scope() as session:
         doc = session.query(DocumentORM).filter_by(id=document_id).first()
         if not doc or not doc.document_data_id:
             flash("Document not found.", "danger")
-            return redirect(url_for("candidate.document_details", document_id=document_id))
+            return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
         dd = session.query(DocumentDataORM).filter_by(id=doc.document_data_id).first()
         if not dd:
             flash("Document data not found.", "danger")
-            return redirect(url_for("candidate.document_details", document_id=document_id))
+            return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
         existing = dd.ocr_extracted_data or {}
         existing.update(payload)
         dd.ocr_extracted_data = existing
 
     flash("Fields updated.", "success")
-    return redirect(url_for("candidate.document_details", document_id=document_id))
+    return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
 
 
 @login_required

@@ -14,6 +14,8 @@ from werkzeug.utils import secure_filename
 import os
 
 from frontend.webapp.main import main_bp
+from backend.datamodule.sa import session_scope
+from backend.datamodule.orm import Document as DocumentORM, DocumentData as DocumentDataORM
 
 #=== Helper functions
 
@@ -40,4 +42,14 @@ def dashboard():
         - recruiter
         - candidate
     """
-    return render_template("dashboard.html")
+    review_alert_count = 0
+    if current_user.is_candidate():
+        with session_scope() as session:
+            review_alert_count = (
+                session.query(DocumentDataORM)
+                .join(DocumentORM, DocumentORM.document_data_id == DocumentDataORM.id)
+                .filter(DocumentORM.user_id == current_user.id)
+                .filter(DocumentDataORM.review_status.in_(["approved", "declined"]))
+                .count()
+            )
+    return render_template("dashboard.html", review_alert_count=review_alert_count)

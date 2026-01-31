@@ -8,7 +8,11 @@
 
 {% block content %}
   <div class="container py-4">
-    <h5>Document Details</h5>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">Document Details</h5>
+      {% set back_app_id = request.args.get('application_id') %}
+      <a href="{{ url_for('candidate.document_management', application_id=back_app_id) if back_app_id else url_for('candidate.document_management') }}" class="btn btn-sm btn-secondary">Back</a>
+    </div>
 
     <dl class="row">
       <dt class="col-sm-3">Document Type</dt>
@@ -31,10 +35,19 @@
       <dd class="col-sm-9">{{ document.ocr_full_text }}</dd>
 
       <dt class="col-sm-3">Status</dt>
-      <dd class="col-sm-9">{{ document.status_name or document.status_id }}</dd>
+      <dd class="col-sm-9">
+        <span class="badge {% if document.status_name == 'approved' %}bg-success{% elif document.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+          {{ document.status_name or document.status_id }}
+        </span>
+      </dd>
 
       <dt class="col-sm-3">Review Status</dt>
-      <dd class="col-sm-9">{{ document.review_status or "pending" }}</dd>
+      <dd class="col-sm-9">
+        {% set review_status = document.review_status or 'pending' %}
+        <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">
+          {{ review_status }}
+        </span>
+      </dd>
 
       <dt class="col-sm-3">Review Comment</dt>
       <dd class="col-sm-9">{{ document.review_comment or "" }}</dd>
@@ -45,6 +58,10 @@
       <hr>
       <h6>Extracted Fields (editable)</h6>
       <form method="POST" action="{{ url_for('candidate.document_details_save', document_id=document.document_id) }}">
+        {% set back_app_id = request.args.get('application_id') %}
+        {% if back_app_id %}
+          <input type="hidden" name="application_id" value="{{ back_app_id }}">
+        {% endif %}
         <div class="row">
           {% for f in form_fields %}
             <div class="col-md-6 mb-3">
@@ -63,6 +80,7 @@
       </details>
     {% endif %}
 
-    <a href="{{ url_for('candidate.document_management') }}" class="btn btn-secondary">Back to Document Management</a>
+    {% set back_app_id = request.args.get('application_id') %}
+    <a href="{{ url_for('candidate.document_management', application_id=back_app_id) if back_app_id else url_for('candidate.document_management') }}" class="btn btn-secondary">Back to Document Management</a>
   </div>
 {% endblock %}

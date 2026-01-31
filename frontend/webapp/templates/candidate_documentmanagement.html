@@ -11,49 +11,92 @@
   <div class="container py-4">
     <div class="row">
 
-      <!-- LEFT: Requirements list -->
-      <div class="col-md-4 mb-3">
-        <h5>Requirements</h5>
-        <ul class="list-group">
-          {% for req in requirements %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <strong>{{ req.name }}</strong>
-                <p class="small text-muted">{{ req.description }}</p>
+      <!-- LEFT: Applications list -->
+      <div class="col-lg-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">Applications</h5>
+          <a href="{{ url_for('candidate.applications_management') }}" class="btn btn-sm btn-secondary">Back</a>
+        </div>
+        <div class="list-group" style="max-height: 70vh; overflow-y: auto;">
+          {% for a in applications %}
+            <a href="{{ url_for('candidate.document_management', application_id=a.id) }}"
+               class="list-group-item list-group-item-action {% if application_id and a.id == application_id %}active{% endif %}">
+              <div class="d-flex flex-column">
+                <span class="fw-semibold">{{ a.profession_name or 'Application' }}</span>
+                <small class="{% if application_id and a.id == application_id %}text-light{% else %}text-muted{% endif %}">
+                  {% if a.country_name %}{{ a.country_name }}{% endif %}
+                  {% if a.state_name %} / {{ a.state_name }}{% endif %}
+                </small>
               </div>
-
-              <!-- Upload button for each requirement -->
-              <form method="POST" action="{{ url_for('candidate.document_management') }}" enctype="multipart/form-data" class="upload-form">
-                <input type="hidden" name="requirement_id" value="{{ req.id }}">
-                <input type="hidden" name="application_id" value="{{ application_id }}">
-                <input type="file" name="document" required>
-                <button type="submit" class="btn btn-sm btn-primary upload-btn">Upload Document</button>
-                <span class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true"></span>
-              </form>
-            </li>
+            </a>
+          {% else %}
+            <div class="text-muted fst-italic">No applications yet.</div>
           {% endfor %}
-        </ul>
+        </div>
+      </div>
+
+      <!-- MIDDLE: Requirements list -->
+      <div class="col-lg-4 mb-3">
+        <h5>Requirements</h5>
+        {% if application_id %}
+          <ul class="list-group">
+            {% for req in requirements %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ req.name }}</strong>
+                  <p class="small text-muted">{{ req.description }}</p>
+                </div>
+
+                <!-- Upload button for each requirement -->
+                <form method="POST" action="{{ url_for('candidate.document_management') }}" enctype="multipart/form-data" class="upload-form">
+                  <input type="hidden" name="requirement_id" value="{{ req.id }}">
+                  <input type="hidden" name="application_id" value="{{ application_id }}">
+                  <input type="file" name="document" required>
+                  <button type="submit" class="btn btn-sm btn-primary upload-btn">Upload Document</button>
+                  <span class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true"></span>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="alert alert-warning">Please select an application to see requirements.</div>
+        {% endif %}
       </div>
 
       <!-- RIGHT: Uploaded Documents for selected application -->
-      <div class="col-md-6 mb-3">
-        <h5>Uploaded Documents</h5>
+      <div class="col-lg-5 mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Uploaded Documents</h5>
+        </div>
+
+        {% if review_alerts %}
+          <div class="alert alert-warning mt-2">
+            New review updates: {{ review_alerts|length }} document(s) reviewed.
+            <span class="ms-2">Open details to view comments.</span>
+          </div>
+        {% endif %}
+
         {% if application_id %}
           {% for doc in documents %}
             <div class="list-group-item d-flex justify-content-between align-items-center">
               <div>
                 <strong>{{ doc.document_type_name }}</strong>
-                <p class="small text-muted">{{ doc.filename }}</p>
+                <p class="small text-muted mb-0">{{ doc.filename }}</p>
               </div>
 
-              <!-- Status Badge -->
-              <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
-                {{ doc.status_name or doc.status_id }}
-              </span>
+              <div class="d-flex flex-column align-items-end">
+                <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %} mb-1">
+                  {{ doc.status_name or doc.status_id }}
+                </span>
+                {% set review_status = doc.review_status or 'pending' %}
+                <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {{ review_status }}
+                </span>
+              </div>
 
               <!-- Actions: Details & Delete -->
-              <div class="btn-group">
-                <a href="{{ url_for('candidate.document_details', document_id=doc.document_id) }}" class="btn btn-sm btn-info">Details</a>
+              <div class="btn-group ms-2">
+                <a href="{{ url_for('candidate.document_details', document_id=doc.document_id, application_id=application_id) }}" class="btn btn-sm btn-info">Details</a>
                 <form method="POST" action="{{ url_for('candidate.delete_document', document_id=doc.document_id) }}" class="d-inline">
                   <input type="hidden" name="application_id" value="{{ application_id }}">
                   <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this document?');">Delete</button>
@@ -61,14 +104,10 @@
               </div>
             </div>
           {% else %}
-            <div class="alert alert-info">
-              No documents uploaded for this application.
-            </div>
+            <div class="alert alert-info">No documents uploaded for this application.</div>
           {% endfor %}
         {% else %}
-          <div class="alert alert-warning">
-            Please select an application from the left to manage its documents.
-          </div>
+          <div class="alert alert-warning">Please select an application from the left to manage its documents.</div>
         {% endif %}
       </div>
 
