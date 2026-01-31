@@ -536,6 +536,10 @@ def _postprocess_passport_fields(fields: dict) -> dict:
     if "surname" in fields or "given_names" in fields:
         surname = fields.get("surname", "")
         given = fields.get("given_names", "")
+        surname = " ".join(re.sub(r"[^A-Za-zÄÖÜäöüß\\s-]", " ", surname).split())
+        given = " ".join(re.sub(r"[^A-Za-zÄÖÜäöüß\\s-]", " ", given).split())
+        fields["surname"] = surname
+        fields["given_names"] = given
         full = " ".join(part for part in [given, surname] if part).strip()
         if full:
             fields.setdefault("full_name", full)
@@ -543,6 +547,8 @@ def _postprocess_passport_fields(fields: dict) -> dict:
     # Normalize sex field
     if "sex" in fields:
         fields["sex"] = fields["sex"].strip().upper().replace("0", "O")
+        if fields["sex"] not in {"M", "F", "X"}:
+            fields["sex"] = ""
 
     for key in ("issuing_country", "nationality"):
         if key in fields and fields[key]:
@@ -550,6 +556,8 @@ def _postprocess_passport_fields(fields: dict) -> dict:
             cleaned = "".join(ch for ch in cleaned if "A" <= ch <= "Z")
             if len(cleaned) >= 3:
                 fields[key] = cleaned[:3]
+            else:
+                fields[key] = ""
 
     if "passport_number" in fields and fields["passport_number"]:
         pn = fields["passport_number"].upper().replace("<", "")
@@ -557,12 +565,36 @@ def _postprocess_passport_fields(fields: dict) -> dict:
             pn_alt = _fix_digit_like(pn)
             if re.fullmatch(r"[A-Z0-9]{6,9}", pn_alt):
                 pn = pn_alt
+        if not re.fullmatch(r"[A-Z0-9]{6,9}", pn):
+            pn = ""
         fields["passport_number"] = pn
 
     if "mrz_line1" in fields and fields["mrz_line1"]:
         fields["mrz_line1"] = _normalize_mrz_line(fields["mrz_line1"])
     if "mrz_line2" in fields and fields["mrz_line2"]:
         fields["mrz_line2"] = _normalize_mrz_line(fields["mrz_line2"], numeric=True)
+
+    # Prefer MRZ-derived fields when full lines are available.
+    if fields.get("mrz_line2") and len(fields["mrz_line2"]) >= 28:
+        l2 = fields["mrz_line2"]
+        pn = l2[0:9].replace("<", "").strip()
+        nat = l2[10:13]
+        braw = l2[13:19]
+        sex = l2[20:21]
+        eraw = l2[21:27]
+        if pn:
+            fields["passport_number"] = pn
+        if nat:
+            fields["nationality"] = _fix_alpha_like(nat)
+        if braw:
+            fields["birth_date"] = _yyMMdd_to_iso(braw)
+            fields["birth_date_raw"] = _fix_digit_like(braw)
+        if eraw:
+            fields["expiry_date"] = _yyMMdd_to_iso(eraw)
+            fields["expiry_date_raw"] = _fix_digit_like(eraw)
+        if sex:
+            sex = sex.upper().replace("0", "O")
+            fields["sex"] = sex if sex in {"M", "F", "X"} else ""
 
     return fields
 
