@@ -28,6 +28,7 @@
           --brand-primary: #1f6fd6;
           --brand-secondary: #334155;
           --brand-accent: #0f9fa8;
+          --brand-hover: #175bb3;
       }
       body { --bs-body-color: var(--brand-text); }
 
@@ -59,15 +60,10 @@
           border-color: var(--brand-accent);
           color: #fff;
       }
-      .btn-primary:hover,
-      .btn-success:hover,
-      .btn-info:hover,
-      .btn-warning:hover,
-      .btn-danger:hover,
-      .btn-secondary:hover,
-      .btn-dark:hover {
-          filter: brightness(0.92);
-          color: #fff;
+      .btn:hover {
+          background-color: var(--brand-hover) !important;
+          border-color: var(--brand-hover) !important;
+          color: #fff !important;
       }
       .btn-outline-primary,
       .btn-outline-secondary,
