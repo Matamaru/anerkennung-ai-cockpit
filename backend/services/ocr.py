@@ -562,10 +562,13 @@ def _extract_mrz_from_text(ocr_text: str) -> dict:
                     return {}
 
     mrz_lines = [_normalize_mrz_line(l) for l in mrz_lines]
-    if not _mrz_checksum_ok(mrz_lines[1]):
-        return {}
+    checksum_ok = _mrz_checksum_ok(mrz_lines[1])
 
-    return _parse_mrz_lines(mrz_lines)
+    parsed = _parse_mrz_lines(mrz_lines)
+    if not parsed:
+        return {}
+    parsed["mrz_checksum_ok"] = checksum_ok
+    return parsed
 
 
 def _parse_mrz_lines(mrz_lines: list[str]) -> dict:
