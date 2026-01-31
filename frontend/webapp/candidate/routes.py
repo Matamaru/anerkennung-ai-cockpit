@@ -31,6 +31,7 @@ from backend.services.ocr import (
     _postprocess_passport_fields,
     extract_diploma_fields,
 )
+from backend.utils.s3_docs import upload_bytes, presign_url, is_s3_uri
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import re
@@ -226,6 +227,13 @@ def document_management():
         stored_path = os.path.join(upload_dir, stored_name)
         with open(stored_path, "wb") as f:
             f.write(file_bytes)
+        s3_uri = upload_bytes(file_bytes, stored_name, user_id=current_user.id)
+        if s3_uri:
+            stored_path = s3_uri
+            try:
+                os.remove(os.path.join(upload_dir, stored_name))
+            except Exception:
+                pass
 
         filetype_name = _infer_filetype(filename, file_bytes)
         filetype_tuple = FileType.get_by_name(filetype_name)
@@ -376,6 +384,13 @@ def view_document(document_id):
         filepath = file_row.filepath if file_row else None
         filename = file_row.filename if file_row else "document"
 
+    if is_s3_uri(filepath):
+        url = presign_url(filepath)
+        if url:
+            return redirect(url)
+        flash("Document file not found.", "danger")
+        return redirect(url_for("candidate.document_details", document_id=document_id))
+
     if not filepath or not os.path.exists(filepath):
         flash("Document file not found.", "danger")
         return redirect(url_for("candidate.document_details", document_id=document_id))
@@ -448,7 +463,7 @@ def delete_document(document_id):
                 if data_row:
                     session.delete(data_row)
 
-    if filepath and os.path.exists(filepath):
+    if filepath and not is_s3_uri(filepath) and os.path.exists(filepath):
         try:
             os.remove(filepath)
         except Exception:

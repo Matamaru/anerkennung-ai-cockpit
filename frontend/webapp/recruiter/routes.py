@@ -29,6 +29,7 @@ from backend.datamodule.models.state import State
 from sqlalchemy import func
 import os
 from frontend.webapp.candidate.routes import get_document_details, _build_document_form_fields
+from backend.utils.s3_docs import presign_url, is_s3_uri
 
 #=== Routes
 @login_required
@@ -166,6 +167,13 @@ def view_document(document_id):
 
     filepath = doc.get("filepath")
     filename = doc.get("filename") or "document"
+    if is_s3_uri(filepath):
+        url = presign_url(filepath)
+        if url:
+            return redirect(url)
+        flash("Document file not found.", "danger")
+        return redirect(url_for("recruiter.candidate_management"))
+
     if not filepath or not os.path.exists(filepath):
         flash("Document file not found.", "danger")
         return redirect(url_for("recruiter.candidate_management"))
