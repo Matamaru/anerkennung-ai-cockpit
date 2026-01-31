@@ -54,7 +54,6 @@
               <!-- Actions: Details & Delete -->
               <div class="btn-group">
                 <a href="{{ url_for('candidate.document_details', document_id=doc.document_id) }}" class="btn btn-sm btn-info">Details</a>
-                <a href="{{ url_for('candidate.delete_document', document_id=doc.document_id) }}" class="btn btn-sm btn-danger">Delete</a>
               </div>
             </div>
           {% else %}
