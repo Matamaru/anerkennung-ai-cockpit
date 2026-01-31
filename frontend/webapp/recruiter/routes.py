@@ -159,15 +159,13 @@ def candidate_management():
 @recruiter_required
 @recruiter_bp.get("/dashboard/recruiter/document/view/<document_id>")
 def view_document(document_id):
-    with session_scope() as session:
-        doc = session.query(DocumentORM).filter_by(id=document_id).first()
-        if not doc or not doc.file_id:
-            flash("Document not found.", "danger")
-            return redirect(url_for("recruiter.candidate_management"))
-        file_row = session.query(File).filter_by(id=doc.file_id).first()
-        filepath = file_row.filepath if file_row else None
-        filename = file_row.filename if file_row else "document"
+    doc = get_document_details(document_id)
+    if not doc:
+        flash("Document not found.", "danger")
+        return redirect(url_for("recruiter.candidate_management"))
 
+    filepath = doc.get("filepath")
+    filename = doc.get("filename") or "document"
     if not filepath or not os.path.exists(filepath):
         flash("Document file not found.", "danger")
         return redirect(url_for("recruiter.candidate_management"))
