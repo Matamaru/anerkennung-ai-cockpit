@@ -253,6 +253,8 @@ def document_management():
                 mrz_fields = _extract_mrz_from_text(ocr_text)
                 if mrz_fields:
                     fields = _postprocess_passport_fields(mrz_fields)
+                    if fields.get("mrz_checksum_ok") is False:
+                        fields.update(_extract_passport_text_fields(ocr_text))
                     current_app.logger.info("OCR fallback extracted MRZ fields for %s", filename)
                 elif doc_hint in ("diploma", "degree"):
                     diploma_fields = extract_diploma_fields(ocr_text)
@@ -493,6 +495,27 @@ def _sanitize_field_value(key: str, value: str, fields: dict) -> str:
     else:
         cleaned = cleaned.replace("<", "").strip()
     return cleaned
+
+
+def _extract_passport_text_fields(ocr_text: str) -> dict:
+    if not ocr_text:
+        return {}
+    out: dict = {}
+    m = re.search(r"\bname\s*[:\-]\s*([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-\s]{2,80})", ocr_text, re.I)
+    if m:
+        full = " ".join(m.group(1).split())
+        parts = full.split()
+        if parts:
+            out["surname"] = parts[-1]
+            out["given_names"] = " ".join(parts[:-1]) if len(parts) > 1 else ""
+            out["full_name"] = full
+    m = re.search(r"\bnationality\s*[:\-]\s*([A-Z]{3})\b", ocr_text, re.I)
+    if m:
+        out["nationality"] = m.group(1).upper()
+    m = re.search(r"\b(passport|passnummer|passport no)\s*[:\-]?\s*([A-Z0-9]{6,9})\b", ocr_text, re.I)
+    if m:
+        out["passport_number"] = m.group(2).upper()
+    return out
 
 
 def _document_form_schema(doc_type_name: str | None) -> list[dict]:
