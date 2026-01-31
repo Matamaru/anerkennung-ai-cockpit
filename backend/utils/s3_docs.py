@@ -43,15 +43,14 @@ def upload_bytes(file_bytes: bytes, filename: str, *, user_id: str | None = None
     return f"s3://{bucket}/{key}"
 
 
-def presign_url(s3_uri: str, *, expires: int = 3600) -> str | None:
+def presign_url(s3_uri: str, *, expires: int = 3600, inline: bool = True) -> str | None:
     if not is_s3_uri(s3_uri):
         return None
     parsed = urlparse(s3_uri)
     bucket = parsed.netloc
     key = parsed.path.lstrip("/")
     client = _client()
-    return client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": bucket, "Key": key},
-        ExpiresIn=expires,
-    )
+    params = {"Bucket": bucket, "Key": key}
+    if inline:
+        params["ResponseContentDisposition"] = "inline"
+    return client.generate_presigned_url("get_object", Params=params, ExpiresIn=expires)
