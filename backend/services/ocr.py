@@ -332,7 +332,6 @@ def analyze_bytes(file_bytes: bytes) -> OcrResult:
 
     if doc_type == "Passport":
         fields = extract_passport_fields(predictions)
-        ocr_text = "\n".join(predictions)
     elif doc_type == "Degree Certificate":
         pass
         fields = extract_diploma_fields(ocr_text)
