@@ -435,13 +435,6 @@ def document_details_save(document_id):
     fields = {k: v for k, v in request.form.items() if k.startswith("field_")}
     application_id = request.form.get("application_id")
     profile_fields_raw = request.form.get("profile_fields") or ""
-    current_app.logger.warning(
-        "Document details save payload for %s: application_id=%s profile_fields=%s fields=%s",
-        document_id,
-        application_id,
-        profile_fields_raw,
-        {k: v for k, v in request.form.items() if k.startswith("field_")},
-    )
     payload = {}
     for key, value in fields.items():
         cleaned = (value or "").strip()
