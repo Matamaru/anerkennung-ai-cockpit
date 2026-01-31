@@ -254,6 +254,7 @@ def document_management():
                 if mrz_fields:
                     fields = _postprocess_passport_fields(mrz_fields)
                     if fields.get("mrz_checksum_ok") is False:
+                        fields = _drop_mrz_fields(fields)
                         fields.update(_extract_passport_text_fields(ocr_text))
                     current_app.logger.info("OCR fallback extracted MRZ fields for %s", filename)
                 elif doc_hint in ("diploma", "degree"):
@@ -539,6 +540,32 @@ def _extract_passport_text_fields(ocr_text: str) -> dict:
     if m:
         out["passport_number"] = m.group(2).upper()
     return out
+
+
+def _drop_mrz_fields(fields: dict) -> dict:
+    if not isinstance(fields, dict):
+        return {}
+    cleaned = dict(fields)
+    for key in (
+        "document_code",
+        "issuing_country",
+        "passport_number",
+        "passport_number_check",
+        "nationality",
+        "birth_date",
+        "birth_date_check",
+        "expiry_date",
+        "expiry_date_check",
+        "sex",
+        "personal_number",
+        "personal_number_check",
+        "final_check",
+        "surname",
+        "given_names",
+        "full_name",
+    ):
+        cleaned.pop(key, None)
+    return cleaned
 
 
 def _document_form_schema(doc_type_name: str | None) -> list[dict]:
