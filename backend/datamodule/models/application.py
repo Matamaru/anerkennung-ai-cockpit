@@ -62,6 +62,8 @@ class Application(Model):
     def delete(self) -> int:
         try:
             with session_scope() as session:
+                from backend.datamodule.orm import AppDoc as AppDocORM
+                session.query(AppDocORM).filter_by(application_id=self.id).delete()
                 deleted = session.query(ApplicationORM).filter_by(id=self.id).delete()
                 return deleted
         except Exception as error:
