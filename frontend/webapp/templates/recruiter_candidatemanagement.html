@@ -20,31 +20,64 @@
     </div>
 
     {% if candidates %}
-      <div class="table-responsive">
-        <table class="table table-sm align-middle">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th class="text-center">Applications</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in candidates %}
-              <tr>
-                <td>{{ c.username }}</td>
-                <td>{{ c.email }}</td>
-                <td class="text-center">{{ c.application_count }}</td>
-                <td class="text-end">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('recruiter.candidate_management', user_id=c.user_id) }}">
-                    View Applications
-                  </a>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th class="text-center">Applications</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in candidates %}
+                  <tr>
+                    <td>{{ c.username }}</td>
+                    <td>{{ c.email }}</td>
+                    <td class="text-center">{{ c.application_count }}</td>
+                    <td class="text-end">
+                      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('recruiter.candidate_management', user_id=c.user_id) }}">
+                        View Applications
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          {% if selected_user %}
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title mb-2">{{ selected_user.username }}</h6>
+                <div class="text-muted small mb-3">{{ selected_user.email }}</div>
+                {% if applications %}
+                  <div class="list-group list-group-flush">
+                    {% for app in applications %}
+                      <div class="list-group-item">
+                        <div class="fw-semibold">{{ app.profession_name }}</div>
+                        <div class="small text-muted">
+                          {{ app.country_name }} · {{ app.state_name }}
+                        </div>
+                        <div class="small text-muted">
+                          Created: {{ app.time_created }}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="alert alert-info mb-0">No applications for this candidate.</div>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="alert alert-secondary">Select a candidate to view applications.</div>
+          {% endif %}
+        </div>
       </div>
     {% else %}
       <div class="alert alert-info">No candidates found.</div>
