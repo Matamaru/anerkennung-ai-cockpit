@@ -27,6 +27,8 @@ from backend.datamodule.orm import AppDoc, Document as DocumentORM, DocumentData
 from backend.datamodule.sa import session_scope
 from backend.services.ocr import analyze_bytes_with_layoutlm_fields
 from werkzeug.utils import secure_filename
+from datetime import datetime
+import re
 import os
 import requests
 
@@ -405,6 +407,34 @@ def _pick_field_value(fields: dict, keys: list[str], default: str = "") -> str:
     return default
 
 
+def _sanitize_field_value(key: str, value: str) -> str:
+    cleaned = (value or "").strip()
+    if not cleaned:
+        return ""
+    lower_key = key.lower()
+    if "name" in lower_key:
+        cleaned = cleaned.replace("<", " ")
+        cleaned = " ".join(cleaned.split())
+    elif any(token in lower_key for token in ("nationality", "issuing_country", "passport_number", "personal_number", "sex")):
+        cleaned = cleaned.replace("<", "")
+        cleaned = re.sub(r"[^A-Za-z0-9]", "", cleaned)
+    elif "date" in lower_key:
+        cleaned = cleaned.replace("<", "")
+        digits = re.sub(r"[^0-9]", "", cleaned)
+        if len(digits) == 6:
+            yy = int(digits[:2])
+            mm = digits[2:4]
+            dd = digits[4:6]
+            current_yy = datetime.utcnow().year % 100
+            century = 2000 if yy <= current_yy else 1900
+            cleaned = f"{century + yy:04d}-{mm}-{dd}"
+        else:
+            cleaned = digits or cleaned
+    else:
+        cleaned = cleaned.replace("<", "").strip()
+    return cleaned
+
+
 def _document_form_schema(doc_type_name: str | None) -> list[dict]:
     dtype = (doc_type_name or "").lower()
     if "passport" in dtype or "id" in dtype:
@@ -449,11 +479,15 @@ def _build_document_form_fields(document: dict | None) -> list[dict]:
         ]
     out: list[dict] = []
     for entry in schema:
+        key = entry["key"]
         out.append(
             {
-                "key": entry["key"],
+                "key": key,
                 "label": entry["label"],
-                "value": _pick_field_value(fields, entry.get("source_keys", [entry["key"]])),
+                "value": _sanitize_field_value(
+                    key,
+                    _pick_field_value(fields, entry.get("source_keys", [key])),
+                ),
             }
         )
     return out
