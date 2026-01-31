@@ -217,11 +217,13 @@ def document_management():
         ocr_service_url = os.getenv("OCR_SERVICE_URL")
         ocr_res = None
         fields = {}
+        ocr_source = "local"
         if ocr_service_url:
             try:
                 remote = _call_ocr_service(ocr_service_url, file_bytes, filename, doc_hint)
                 fields = remote.get("fields", remote)
                 ocr_res = _coerce_remote_ocr(remote)
+                ocr_source = "remote"
             except Exception:
                 current_app.logger.warning("OCR service failed; using local OCR.", exc_info=True)
                 ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
@@ -229,8 +231,21 @@ def document_management():
             ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
         if not fields and getattr(ocr_res, "fields", None):
             fields = ocr_res.fields
+        ocr_text = getattr(ocr_res, "ocr_text", "") or ""
+        current_app.logger.info(
+            "OCR result (%s) for %s: doc_type=%s text_len=%s fields=%s",
+            ocr_source,
+            filename,
+            getattr(ocr_res, "doc_type", "unknown"),
+            len(ocr_text),
+            len(fields or {}),
+        )
+        if not ocr_text:
+            current_app.logger.warning("OCR text is empty for %s", filename)
         if not fields:
             current_app.logger.warning("OCR extracted fields are empty for %s", filename)
+            if ocr_text:
+                fields = {"ocr_text": ocr_text}
         doc_type_name = _map_doc_type(ocr_res.doc_type, requirement_id)
         doc_type_tuple = DocumentTypeModel.get_by_name(doc_type_name) if doc_type_name else None
         doc_type = DocumentTypeModel.from_tuple(doc_type_tuple) if doc_type_tuple else None
