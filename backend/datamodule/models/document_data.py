@@ -21,6 +21,8 @@ class DocumentData(Model):
             ocr_full_text: str = None, 
             ocr_extracted_data: dict = None, 
             ocr_source: str = None,
+            check_ready: bool = False,
+            validation_errors: dict = None,
             layoutlm_full_text: str = None,
             layout_lm_data: dict = None,
             review_status: str = None,
@@ -34,6 +36,8 @@ class DocumentData(Model):
         self.ocr_full_text = ocr_full_text
         self.ocr_extracted_data = ocr_extracted_data
         self.ocr_source = ocr_source
+        self.check_ready = check_ready
+        self.validation_errors = validation_errors
         self.layoutlm_full_text = layoutlm_full_text
         self.layout_lm_data = layout_lm_data
         self.review_status = review_status
@@ -49,6 +53,8 @@ class DocumentData(Model):
             self.ocr_full_text,
             self.ocr_extracted_data,
             self.ocr_source,
+            self.check_ready,
+            self.validation_errors,
             self.layoutlm_full_text,
             self.layout_lm_data,
             self.review_status,
@@ -89,12 +95,14 @@ class DocumentData(Model):
                 orm_dd.ocr_full_text = values[2]
                 orm_dd.ocr_extracted_data = values[3]
                 orm_dd.ocr_source = values[4]
-                orm_dd.layoutlm_full_text = values[5]
-                orm_dd.layout_lm_data = values[6]
-                orm_dd.review_status = values[7]
-                orm_dd.review_comment = values[8]
-                orm_dd.reviewed_by = values[9]
-                orm_dd.reviewed_at = values[10]
+                orm_dd.check_ready = values[5]
+                orm_dd.validation_errors = values[6]
+                orm_dd.layoutlm_full_text = values[7]
+                orm_dd.layout_lm_data = values[8]
+                orm_dd.review_status = values[9]
+                orm_dd.review_comment = values[10]
+                orm_dd.reviewed_by = values[11]
+                orm_dd.reviewed_at = values[12]
                 session.flush()
                 return DocumentData._as_tuple(orm_dd)
         except Exception as error:
@@ -133,12 +141,14 @@ class DocumentData(Model):
                 ocr_full_text=tuple_data[3],
                 ocr_extracted_data=tuple_data[4],
                 ocr_source=tuple_data[5],
-                layoutlm_full_text=tuple_data[6],
-                layout_lm_data=tuple_data[7],
-                review_status=tuple_data[8],
-                review_comment=tuple_data[9],
-                reviewed_by=tuple_data[10],
-                reviewed_at=tuple_data[11],
+                check_ready=tuple_data[6],
+                validation_errors=tuple_data[7],
+                layoutlm_full_text=tuple_data[8],
+                layout_lm_data=tuple_data[9],
+                review_status=tuple_data[10],
+                review_comment=tuple_data[11],
+                reviewed_by=tuple_data[12],
+                reviewed_at=tuple_data[13],
             )
         return None
 

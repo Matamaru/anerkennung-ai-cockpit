@@ -54,7 +54,25 @@
 
       <dt class="col-sm-3">Review Comment</dt>
       <dd class="col-sm-9">{{ document.review_comment or "" }}</dd>
+
+      <dt class="col-sm-3">Check Ready</dt>
+      <dd class="col-sm-9">
+        <span class="badge {% if document.check_ready %}bg-success{% else %}bg-secondary{% endif %}">
+          {{ "check ready" if document.check_ready else "not ready" }}
+        </span>
+      </dd>
     </dl>
+
+    {% if document.validation_errors and document.validation_errors.errors %}
+      <div class="alert alert-warning">
+        <strong>Validation issues:</strong>
+        <ul class="mb-0">
+          {% for err in document.validation_errors.errors %}
+            <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
 
     {% set fields = document.ocr_extracted_data or {} %}
     {% if form_fields %}

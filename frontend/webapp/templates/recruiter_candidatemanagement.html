@@ -91,6 +91,9 @@
                             <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %} mb-1">
                               {{ doc.status_name or 'unknown' }}
                             </span>
+                            <span class="badge {% if doc.check_ready %}bg-success{% else %}bg-secondary{% endif %} mb-1">
+                              {{ "check ready" if doc.check_ready else "not ready" }}
+                            </span>
                             {% set review_status = doc.review_status or 'pending' %}
                             <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">
                               {{ review_status }}

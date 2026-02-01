@@ -133,6 +133,35 @@ def _ensure_document_ocr_source_column() -> None:
 
 _ensure_document_ocr_source_column()
 
+def _ensure_document_check_ready_columns() -> None:
+    try:
+        with engine.begin() as conn:
+            if conn.dialect.name == "sqlite":
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(_document_datas)")).fetchall()]
+                if "check_ready" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN check_ready BOOLEAN DEFAULT 0"))
+                if "validation_errors" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN validation_errors JSON"))
+            else:
+                cols = {
+                    row[0]
+                    for row in conn.execute(
+                        text(
+                            "SELECT column_name FROM information_schema.columns "
+                            "WHERE table_name = '_document_datas'"
+                        )
+                    ).fetchall()
+                }
+                if "check_ready" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN check_ready BOOLEAN DEFAULT FALSE"))
+                if "validation_errors" not in cols:
+                    conn.execute(text("ALTER TABLE _document_datas ADD COLUMN validation_errors JSONB"))
+    except Exception:
+        pass
+
+
+_ensure_document_check_ready_columns()
+
 
 def _ensure_user_profile_table() -> None:
     try:

@@ -169,10 +169,14 @@ def get_document_details(document_id) -> Document:
                     DocumentDataORM.ocr_full_text,
                     DocumentDataORM.ocr_extracted_data,
                     DocumentDataORM.ocr_source,
+                    DocumentDataORM.check_ready,
+                    DocumentDataORM.validation_errors,
                     DocumentDataORM.review_status,
                     DocumentDataORM.review_comment,
                     DocumentDataORM.reviewed_by,
                     DocumentDataORM.reviewed_at,
+                    DocumentDataORM.check_ready,
+                    DocumentDataORM.validation_errors,
                     DocumentORM.last_modified,
                     DocumentORM.status_id,
                     StatusORM.name.label("status_name"),
@@ -195,10 +199,14 @@ def get_document_details(document_id) -> Document:
                     "ocr_full_text": row.ocr_full_text,
                     "ocr_extracted_data": row.ocr_extracted_data or {},
                     "ocr_source": row.ocr_source,
+                    "check_ready": row.check_ready,
+                    "validation_errors": row.validation_errors,
                     "review_status": row.review_status,
                     "review_comment": row.review_comment,
                     "reviewed_by": row.reviewed_by,
                     "reviewed_at": row.reviewed_at,
+                    "check_ready": row.check_ready,
+                    "validation_errors": row.validation_errors,
                     "last_modified": row.last_modified,
                     "status_id": row.status_id,
                     "status_name": row.status_name,
@@ -273,6 +281,7 @@ def document_management():
             ocr_res, fields = analyze_bytes_with_layoutlm_fields(file_bytes, token_model_dir=token_model_dir)
         if not fields and getattr(ocr_res, "fields", None):
             fields = ocr_res.fields
+        fields, check_ready, validation_errors = _evaluate_document_fields(doc_type_name=_map_doc_type(ocr_res.doc_type, requirement_id), fields=fields)
         ocr_text = getattr(ocr_res, "ocr_text", "") or ""
         current_app.logger.warning(
             "OCR result (%s) for %s: doc_type=%s text_len=%s fields=%s",
@@ -314,6 +323,8 @@ def document_management():
             ocr_full_text=ocr_res.ocr_text,
             ocr_extracted_data=fields,
             ocr_source=ocr_source,
+            check_ready=check_ready,
+            validation_errors=validation_errors,
         )
         dd_tuple = dd.insert()
 
@@ -365,6 +376,7 @@ def document_management():
     requirements = []
     documents = []
     review_alerts = []
+    application_check_ready = False
     if application_id:
         # Get requirements associated with the selected application
         requirements = get_requirements_for_application(application_id)
@@ -374,6 +386,7 @@ def document_management():
         review_alerts = [
             d for d in documents if (d.get("review_status") or "pending") in ("approved", "declined")
         ]
+        application_check_ready = _application_check_ready(application_id, requirements, documents)
 
     return render_template(
         "candidate_documentmanagement.html",
@@ -382,6 +395,7 @@ def document_management():
         documents=documents,
         application_id=application_id,  # Pass the application_id to the template
         review_alerts=review_alerts,
+        application_check_ready=application_check_ready,
     )
 
 
@@ -468,8 +482,14 @@ def document_details_save(document_id):
             return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
         existing = dict(dd.ocr_extracted_data or {})
         existing.update(payload)
-        dd.ocr_extracted_data = dict(existing)
+        updated_fields, check_ready, validation_errors = _evaluate_document_fields(
+            doc_type_name=doc.document_type.name if doc.document_type else None,
+            fields=existing,
+        )
+        dd.ocr_extracted_data = dict(updated_fields)
         flag_modified(dd, "ocr_extracted_data")
+        dd.check_ready = check_ready
+        dd.validation_errors = validation_errors
 
     flash("Fields updated.", "success")
     return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))
@@ -706,6 +726,103 @@ def _build_document_form_fields(document: dict | None, profile: dict | None = No
         }
         out.append(_attach_profile_suggestion(field, profile))
     return out
+
+
+def _mandatory_fields_for_doc_type(doc_type_name: str | None) -> list[str]:
+    name = (doc_type_name or "").lower()
+    if "passport" in name or name == "id":
+        return [
+            "surname",
+            "given_names",
+            "nationality",
+            "passport_number",
+            "birth_date",
+            "sex",
+            "expiry_date",
+            "issuing_country",
+        ]
+    return []
+
+
+def _normalize_date_field(value: str) -> str | None:
+    cleaned = (value or "").strip()
+    if not cleaned:
+        return None
+    # Accept YYYY-MM-DD
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
+        return cleaned
+    # Accept DD.MM.YYYY
+    m = re.fullmatch(r"(\d{2})\.(\d{2})\.(\d{4})", cleaned)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    # Accept YYYY/MM/DD or DD/MM/YYYY
+    m = re.fullmatch(r"(\d{2,4})/(\d{2})/(\d{2,4})", cleaned)
+    if m:
+        a, b, c = m.group(1), m.group(2), m.group(3)
+        if len(a) == 4:
+            return f"{a}-{b}-{c.zfill(2)}"
+        if len(c) == 4:
+            return f"{c}-{b}-{a.zfill(2)}"
+    return None
+
+
+def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[dict, bool, dict]:
+    errors: list[str] = []
+    updated = dict(fields or {})
+    mandatory = _mandatory_fields_for_doc_type(doc_type_name)
+
+    # Normalize key fields for passport
+    if mandatory:
+        if "birth_date" in updated:
+            normalized = _normalize_date_field(str(updated.get("birth_date") or ""))
+            if normalized:
+                updated["birth_date"] = normalized
+        if "expiry_date" in updated:
+            normalized = _normalize_date_field(str(updated.get("expiry_date") or ""))
+            if normalized:
+                updated["expiry_date"] = normalized
+
+        if "nationality" in updated and updated.get("nationality"):
+            updated["nationality"] = str(updated["nationality"]).upper().strip()
+        if "issuing_country" in updated and updated.get("issuing_country"):
+            updated["issuing_country"] = str(updated["issuing_country"]).upper().strip()
+        if "passport_number" in updated and updated.get("passport_number"):
+            updated["passport_number"] = str(updated["passport_number"]).upper().strip()
+        if "sex" in updated and updated.get("sex"):
+            updated["sex"] = str(updated["sex"]).upper().strip()
+
+        # Validate mandatory fields
+        for key in mandatory:
+            if not updated.get(key):
+                errors.append(f"{key} is missing")
+
+        if updated.get("nationality") and not re.fullmatch(r"[A-Z]{3}", updated["nationality"]):
+            errors.append("nationality is invalid")
+        if updated.get("issuing_country") and not re.fullmatch(r"[A-Z]{3}", updated["issuing_country"]):
+            errors.append("issuing_country is invalid")
+        if updated.get("passport_number") and not re.fullmatch(r"[A-Z0-9]{6,9}", updated["passport_number"]):
+            errors.append("passport_number is invalid")
+        if updated.get("sex") and updated["sex"] not in {"M", "F", "X"}:
+            errors.append("sex is invalid")
+        for date_key in ("birth_date", "expiry_date"):
+            if updated.get(date_key) and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated[date_key]):
+                errors.append(f"{date_key} is invalid")
+
+    check_ready = (len(errors) == 0) if mandatory else True
+    return updated, check_ready, {"errors": errors}
+
+
+def _application_check_ready(application_id: str, requirements: list[dict], documents: list[dict]) -> bool:
+    if not application_id:
+        return False
+    required_ids = {r["id"] for r in requirements}
+    if not required_ids:
+        return False
+    ready_requirements = set()
+    for doc in documents:
+        if doc.get("requirements_id") in required_ids and doc.get("check_ready"):
+            ready_requirements.add(doc.get("requirements_id"))
+    return required_ids.issubset(ready_requirements)
 
 
 def _get_user_profile(user_id: str) -> dict | None:

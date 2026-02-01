@@ -77,7 +77,14 @@
       <div class="col-lg-5">
         <div class="card shadow-sm">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">Uploaded Documents</span>
+            <div class="d-flex align-items-center gap-2">
+              <span class="fw-semibold">Uploaded Documents</span>
+              {% if application_check_ready %}
+                <span class="badge bg-success">Check ready</span>
+              {% else %}
+                <span class="badge bg-secondary">Not ready</span>
+              {% endif %}
+            </div>
           </div>
           <div class="card-body p-0">
             {% if review_alerts %}
@@ -99,6 +106,9 @@
                       <div class="doc-badges">
                         <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
                           {{ doc.status_name or doc.status_id }}
+                        </span>
+                        <span class="badge {% if doc.check_ready %}bg-success{% else %}bg-secondary{% endif %}">
+                          {{ "check ready" if doc.check_ready else "not ready" }}
                         </span>
                         {% set review_status = doc.review_status or 'pending' %}
                         <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">

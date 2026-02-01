@@ -84,6 +84,7 @@ def candidate_management():
                         DocumentType.name.label("document_type_name"),
                         File.filename,
                         DocumentDataORM.ocr_full_text,
+                        DocumentDataORM.check_ready,
                         DocumentDataORM.review_status,
                         StatusORM.name.label("status_name"),
                     )
@@ -135,6 +136,7 @@ def candidate_management():
                 "document_type_name": row.document_type_name,
                 "filename": row.filename,
                 "ocr_full_text": row.ocr_full_text,
+                "check_ready": row.check_ready,
                 "status_name": row.status_name,
                 "review_status": row.review_status,
             }
