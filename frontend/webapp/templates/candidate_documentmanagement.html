@@ -104,9 +104,6 @@
                         <div class="small text-muted text-truncate">{{ doc.filename }}</div>
                       </div>
                       <div class="doc-badges">
-                        <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
-                          {{ doc.status_name or doc.status_id }}
-                        </span>
                         <span class="badge {% if doc.check_ready %}bg-success{% else %}bg-secondary{% endif %}">
                           {{ "check ready" if doc.check_ready else "not ready" }}
                         </span>

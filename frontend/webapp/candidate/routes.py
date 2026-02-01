@@ -364,6 +364,7 @@ def document_management():
             ocr_source=ocr_source,
             check_ready=check_ready,
             validation_errors=validation_errors,
+            review_status="pending",
         )
         dd_tuple = dd.insert()
 
@@ -529,6 +530,11 @@ def document_details_save(document_id):
         flag_modified(dd, "ocr_extracted_data")
         dd.check_ready = check_ready
         dd.validation_errors = validation_errors
+        if dd.review_status == "declined":
+            dd.review_status = "pending"
+            dd.review_comment = None
+            dd.reviewed_by = None
+            dd.reviewed_at = None
 
     flash("Fields updated.", "success")
     return redirect(url_for("candidate.document_details", document_id=document_id, application_id=application_id))

@@ -88,9 +88,6 @@
                             <div class="small text-muted">{{ doc.document_type_name }} · {{ doc.filename }}</div>
                           </div>
                           <div class="d-flex flex-column align-items-end me-2">
-                            <span class="badge {% if doc.status_name == 'approved' %}bg-success{% elif doc.status_name == 'pending' %}bg-warning{% else %}bg-secondary{% endif %} mb-1">
-                              {{ doc.status_name or 'unknown' }}
-                            </span>
                             <span class="badge {% if doc.check_ready %}bg-success{% else %}bg-secondary{% endif %} mb-1">
                               {{ "check ready" if doc.check_ready else "not ready" }}
                             </span>
