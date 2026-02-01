@@ -189,6 +189,7 @@ def get_document_details(document_id) -> Document:
                     DocumentType.name.label("document_type_name"),
                     File.filename,
                     File.filepath,
+                    DocumentDataORM.id.label("document_data_id"),
                     DocumentDataORM.ocr_full_text,
                     DocumentDataORM.ocr_extracted_data,
                     DocumentDataORM.ocr_source,
@@ -212,6 +213,21 @@ def get_document_details(document_id) -> Document:
                 .first()
             )
             if row:
+                computed_ready = row.check_ready
+                computed_errors = row.validation_errors
+                updated_fields = row.ocr_extracted_data or {}
+                if row.ocr_extracted_data is not None:
+                    updated_fields, computed_ready, computed_errors = _evaluate_document_fields(
+                        doc_type_name=row.document_type_name,
+                        fields=row.ocr_extracted_data,
+                    )
+                    if row.document_data_id:
+                        dd = session.query(DocumentDataORM).filter_by(id=row.document_data_id).first()
+                        if dd:
+                            dd.ocr_extracted_data = updated_fields
+                            dd.check_ready = computed_ready
+                            dd.validation_errors = computed_errors
+                            flag_modified(dd, "ocr_extracted_data")
                 print(f"Fetched details for document {document_id}")
                 return {
                     "document_id": row.document_id,
@@ -220,10 +236,10 @@ def get_document_details(document_id) -> Document:
                     "filename": row.filename,
                     "filepath": row.filepath,
                     "ocr_full_text": row.ocr_full_text,
-                    "ocr_extracted_data": row.ocr_extracted_data or {},
+                    "ocr_extracted_data": updated_fields,
                     "ocr_source": row.ocr_source,
-                    "check_ready": row.check_ready,
-                    "validation_errors": row.validation_errors,
+                    "check_ready": computed_ready,
+                    "validation_errors": computed_errors,
                     "review_status": row.review_status,
                     "review_comment": row.review_comment,
                     "reviewed_by": row.reviewed_by,
@@ -626,20 +642,31 @@ def _sanitize_field_value(key: str, value: str, fields: dict) -> str:
                 return ""
     elif "date" in lower_key:
         cleaned = cleaned.replace("<", "")
-        digits = re.sub(r"[^0-9]", "", cleaned)
-        if len(digits) == 6:
-            yy = int(digits[:2])
-            mm = digits[2:4]
-            dd = digits[4:6]
-            current_yy = datetime.utcnow().year % 100
-            century = 2000 if yy <= current_yy else 1900
-            cleaned = f"{century + yy:04d}-{mm}-{dd}"
-        elif len(digits) == 8:
-            cleaned = f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}"
+        normalized = _normalize_date_field(cleaned)
+        if normalized:
+            cleaned = normalized
         else:
-            cleaned = digits or cleaned
+            digits = re.sub(r"[^0-9]", "", cleaned)
+            if len(digits) == 6:
+                yy = int(digits[:2])
+                mm = digits[2:4]
+                dd = digits[4:6]
+                current_yy = datetime.utcnow().year % 100
+                century = 2000 if yy <= current_yy else 1900
+                cleaned = f"{century + yy:04d}-{mm}-{dd}"
+            elif len(digits) == 8:
+                y_prefix = int(digits[:4])
+                y_suffix = int(digits[4:8])
+                if 1900 <= y_prefix <= 2100:
+                    cleaned = f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}"
+                elif 1900 <= y_suffix <= 2100:
+                    cleaned = f"{digits[4:8]}-{digits[2:4]}-{digits[0:2]}"
+                else:
+                    cleaned = digits
+            else:
+                cleaned = digits or cleaned
         if cleaned and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
-            return ""
+            return cleaned
     else:
         cleaned = cleaned.replace("<", "").strip()
     return cleaned
@@ -711,7 +738,6 @@ def _document_form_schema(doc_type_name: str | None) -> list[dict]:
         return [
             {"key": "holder_first_name", "label": "First Name(s)", "source_keys": ["holder_first_name"]},
             {"key": "holder_last_name", "label": "Last Name", "source_keys": ["holder_last_name"]},
-            {"key": "holder_name", "label": "Full Name", "source_keys": ["holder_name", "holder_name_guess", "holder_full_name"]},
             {"key": "holder_birth_name", "label": "Birth/Former Name", "source_keys": ["holder_birth_name"]},
             {"key": "institution_name", "label": "Institution", "source_keys": ["institution_name", "institution", "institution_guess", "institution_label"]},
             {"key": "degree_type", "label": "Degree Type", "source_keys": ["degree_type", "degree_type_guess"]},
@@ -814,6 +840,16 @@ def _normalize_date_field(value: str) -> str | None:
     return None
 
 
+def _split_full_name(value: str) -> tuple[str, str] | None:
+    cleaned = " ".join((value or "").replace(",", " ").split())
+    if not cleaned or " " not in cleaned:
+        return None
+    parts = cleaned.split()
+    if len(parts) < 2:
+        return None
+    return " ".join(parts[:-1]), parts[-1]
+
+
 def _is_valid_date(value: str) -> bool:
     if not value or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         return False
@@ -845,6 +881,11 @@ def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[
 
     # Normalize key fields for passport
     if mandatory:
+        if not updated.get("birth_date") and updated.get("birth_date_raw"):
+            updated["birth_date"] = updated.get("birth_date_raw")
+        if not updated.get("expiry_date") and updated.get("expiry_date_raw"):
+            updated["expiry_date"] = updated.get("expiry_date_raw")
+
         if "birth_date" in updated:
             normalized = _normalize_date_field(str(updated.get("birth_date") or ""))
             if normalized:
@@ -885,6 +926,34 @@ def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[
                 errors.append("expiry_date must be in the future")
 
     if "diploma" in (doc_type_name or "").lower() or "degree" in (doc_type_name or "").lower():
+        if not updated.get("holder_first_name") or not updated.get("holder_last_name"):
+            full_value = updated.get("holder_name") or updated.get("full_name")
+            split = _split_full_name(str(full_value or ""))
+            if split:
+                first_name, last_name = split
+                updated.setdefault("holder_first_name", first_name)
+                updated.setdefault("holder_last_name", last_name)
+        if not updated.get("institution_name"):
+            updated["institution_name"] = (
+                updated.get("institution_guess")
+                or updated.get("institution_label")
+                or updated.get("institution")
+                or ""
+            )
+        if not updated.get("program_or_field"):
+            updated["program_or_field"] = updated.get("program_guess") or updated.get("field_of_study") or ""
+        if not updated.get("location"):
+            updated["location"] = updated.get("location_guess") or ""
+        if not updated.get("graduation_date"):
+            dates = updated.get("dates_detected") or updated.get("dates") or updated.get("issue_date_guess")
+            if isinstance(dates, list):
+                updated["graduation_date"] = dates[0] if dates else ""
+            else:
+                updated["graduation_date"] = dates or ""
+        if updated.get("graduation_date"):
+            normalized = _normalize_date_field(str(updated.get("graduation_date") or ""))
+            if normalized:
+                updated["graduation_date"] = normalized
         profile = _get_user_profile(current_user.id)
         profile_last = (profile.get("last_name") or "").strip() if profile else ""
         holder_last = (updated.get("holder_last_name") or "").strip()
