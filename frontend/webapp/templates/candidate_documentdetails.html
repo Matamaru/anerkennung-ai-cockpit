@@ -87,8 +87,19 @@
         <div class="row">
           {% for f in form_fields %}
             <div class="col-md-6 mb-3">
-              <label class="form-label">{{ f.label }}</label>
-              <input type="text" name="field_{{ f.key }}" class="form-control" value="{{ f.value }}">
+              <label class="form-label {% if f.required %}fw-semibold{% endif %}">
+                {{ f.label }}
+                {% if f.required %}
+                  <span class="text-danger">*</span>
+                {% endif %}
+              </label>
+              <input type="text"
+                     name="field_{{ f.key }}"
+                     class="form-control {% if f.required and f.ready %}field-ready{% elif f.required and not f.ready %}field-missing{% endif %}"
+                     value="{{ f.value }}">
+              {% if f.errors %}
+                <div class="small text-danger mt-1">{{ f.errors[0] }}</div>
+              {% endif %}
               {% if f.profile_value %}
                 <div class="d-flex align-items-center gap-2 mt-1">
                   <button type="button"

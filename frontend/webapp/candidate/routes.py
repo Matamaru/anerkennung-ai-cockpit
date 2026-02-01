@@ -706,12 +706,20 @@ def _build_document_form_fields(document: dict | None, profile: dict | None = No
         return []
     fields = document.get("ocr_extracted_data") or {}
     schema = _document_form_schema(document.get("document_type_name"))
+    mandatory = set(_mandatory_fields_for_doc_type(document.get("document_type_name")))
+    error_list = (document.get("validation_errors") or {}).get("errors", []) if document else []
     if not schema:
         raw_fields = [
             {"key": key, "label": key.replace("_", " ").title(), "value": str(value)}
             for key, value in fields.items()
         ]
-        return [_attach_profile_suggestion(f, profile) for f in raw_fields]
+        out = []
+        for f in raw_fields:
+            f["required"] = f["key"] in mandatory
+            f["ready"] = (not f["required"]) or (f.get("value") not in ("", None))
+            f["errors"] = [e for e in error_list if f["key"] in e]
+            out.append(_attach_profile_suggestion(f, profile))
+        return out
     out: list[dict] = []
     for entry in schema:
         key = entry["key"]
@@ -724,6 +732,9 @@ def _build_document_form_fields(document: dict | None, profile: dict | None = No
                 fields,
             ),
         }
+        field["required"] = key in mandatory
+        field["ready"] = (not field["required"]) or (field.get("value") not in ("", None))
+        field["errors"] = [e for e in error_list if key in e]
         out.append(_attach_profile_suggestion(field, profile))
     return out
 
