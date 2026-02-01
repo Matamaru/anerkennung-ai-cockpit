@@ -805,6 +805,16 @@ def _is_valid_date(value: str) -> bool:
     return True
 
 
+def _is_future_date(value: str) -> bool:
+    if not _is_valid_date(value):
+        return False
+    try:
+        year, month, day = (int(part) for part in value.split("-"))
+        return datetime(year, month, day).date() > datetime.utcnow().date()
+    except Exception:
+        return False
+
+
 def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[dict, bool, dict]:
     errors: list[str] = []
     updated = dict(fields or {})
@@ -843,9 +853,13 @@ def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[
             errors.append("passport_number is invalid")
         if updated.get("sex") and updated["sex"] not in {"M", "F", "X"}:
             errors.append("sex is invalid")
-        for date_key in ("birth_date", "expiry_date"):
-            if updated.get(date_key) and not _is_valid_date(updated[date_key]):
-                errors.append(f"{date_key} is invalid")
+        if updated.get("birth_date") and not _is_valid_date(updated["birth_date"]):
+            errors.append("birth_date is invalid")
+        if updated.get("expiry_date"):
+            if not _is_valid_date(updated["expiry_date"]):
+                errors.append("expiry_date is invalid")
+            elif not _is_future_date(updated["expiry_date"]):
+                errors.append("expiry_date must be in the future")
 
     if "diploma" in (doc_type_name or "").lower() or "degree" in (doc_type_name or "").lower():
         profile = _get_user_profile(current_user.id)
