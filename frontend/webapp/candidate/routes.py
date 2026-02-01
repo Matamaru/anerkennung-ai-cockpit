@@ -83,6 +83,10 @@ def get_documents_for_application(application_id) -> list[Document]:
                     File.filepath,
                     DocumentDataORM.ocr_full_text,
                     DocumentDataORM.review_status,
+                    DocumentDataORM.id.label("document_data_id"),
+                    DocumentDataORM.ocr_extracted_data,
+                    DocumentDataORM.check_ready,
+                    DocumentDataORM.validation_errors,
                     DocumentORM.status_id,
                     StatusORM.name.label("status_name"),
                     AppDoc.requirements_id,
@@ -97,21 +101,40 @@ def get_documents_for_application(application_id) -> list[Document]:
             )
             if rows:
                 print(f"Fetched {len(rows)} documents for application {application_id}")
-                return [
-                    {
-                        "document_id": row.document_id,
-                        "file_id": row.file_id,
-                        "document_type_name": row.document_type_name,
-                        "filename": row.filename,
-                        "filepath": row.filepath,
-                        "ocr_full_text": row.ocr_full_text,
-                        "review_status": row.review_status,
-                        "status_id": row.status_id,
-                        "status_name": row.status_name,
-                        "requirements_id": row.requirements_id,
-                    }
-                    for row in rows
-                ]
+                documents = []
+                for row in rows:
+                    computed_ready = row.check_ready
+                    computed_errors = row.validation_errors
+                    if row.ocr_extracted_data is not None and (row.check_ready is None or row.validation_errors is None):
+                        updated_fields, computed_ready, computed_errors = _evaluate_document_fields(
+                            doc_type_name=row.document_type_name,
+                            fields=row.ocr_extracted_data,
+                        )
+                        if row.document_data_id:
+                            dd = session.query(DocumentDataORM).filter_by(id=row.document_data_id).first()
+                            if dd:
+                                dd.ocr_extracted_data = updated_fields
+                                dd.check_ready = computed_ready
+                                dd.validation_errors = computed_errors
+                                flag_modified(dd, "ocr_extracted_data")
+                    documents.append(
+                        {
+                            "document_id": row.document_id,
+                            "file_id": row.file_id,
+                            "document_type_name": row.document_type_name,
+                            "filename": row.filename,
+                            "filepath": row.filepath,
+                            "ocr_full_text": row.ocr_full_text,
+                            "ocr_extracted_data": row.ocr_extracted_data or {},
+                            "check_ready": computed_ready,
+                            "validation_errors": computed_errors,
+                            "review_status": row.review_status,
+                            "status_id": row.status_id,
+                            "status_name": row.status_name,
+                            "requirements_id": row.requirements_id,
+                        }
+                    )
+                return documents
             print(f"No documents found for application {application_id}")
             return []
     except Exception as e:
