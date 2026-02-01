@@ -679,7 +679,7 @@ def _document_form_schema(doc_type_name: str | None) -> list[dict]:
             {"key": "nationality", "label": "Nationality", "source_keys": ["nationality"]},
             {"key": "passport_number", "label": "Passport Number", "source_keys": ["passport_number", "document_number"]},
             {"key": "birth_date", "label": "Birth Date (YYYY-MM-DD)", "source_keys": ["birth_date", "birth_date_raw"]},
-            {"key": "sex", "label": "Sex", "source_keys": ["sex"]},
+            {"key": "sex", "label": "Sex (M/F/X)", "source_keys": ["sex"]},
             {"key": "expiry_date", "label": "Expiry Date (YYYY-MM-DD)", "source_keys": ["expiry_date", "expiry_date_raw"]},
             {"key": "issuing_country", "label": "Issuing Country", "source_keys": ["issuing_country"]},
             {"key": "personal_number", "label": "Personal Number", "source_keys": ["personal_number"]},
@@ -791,6 +791,20 @@ def _normalize_date_field(value: str) -> str | None:
     return None
 
 
+def _is_valid_date(value: str) -> bool:
+    if not value or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return False
+    try:
+        year, month, day = (int(part) for part in value.split("-"))
+        datetime(year, month, day)
+    except Exception:
+        return False
+    current_year = datetime.utcnow().year
+    if year < current_year - 250 or year > current_year + 250:
+        return False
+    return True
+
+
 def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[dict, bool, dict]:
     errors: list[str] = []
     updated = dict(fields or {})
@@ -830,7 +844,7 @@ def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[
         if updated.get("sex") and updated["sex"] not in {"M", "F", "X"}:
             errors.append("sex is invalid")
         for date_key in ("birth_date", "expiry_date"):
-            if updated.get(date_key) and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated[date_key]):
+            if updated.get(date_key) and not _is_valid_date(updated[date_key]):
                 errors.append(f"{date_key} is invalid")
 
     if "diploma" in (doc_type_name or "").lower() or "degree" in (doc_type_name or "").lower():
@@ -840,6 +854,8 @@ def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[
         if profile_last and holder_last and holder_last.lower() != profile_last.lower():
             if not updated.get("holder_birth_name"):
                 errors.append("holder_birth_name is required when last name differs from profile")
+        if updated.get("graduation_date") and not _is_valid_date(updated["graduation_date"]):
+            errors.append("graduation_date is invalid")
     check_ready = (len(errors) == 0) if mandatory else True
     return updated, check_ready, {"errors": errors}
 
