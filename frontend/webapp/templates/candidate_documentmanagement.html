@@ -104,13 +104,21 @@
                         <div class="small text-muted text-truncate">{{ doc.filename }}</div>
                       </div>
                       <div class="doc-badges">
-                        <span class="badge {% if doc.check_ready %}bg-success{% else %}bg-secondary{% endif %}">
-                          {{ "check ready" if doc.check_ready else "not ready" }}
-                        </span>
                         {% set review_status = doc.review_status or 'pending' %}
-                        <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">
-                          {{ review_status }}
-                        </span>
+                        {% if review_status == 'approved' %}
+                          {% set status_label = 'approved' %}
+                          {% set status_class = 'bg-success' %}
+                        {% elif review_status == 'declined' %}
+                          {% set status_label = 'declined' %}
+                          {% set status_class = 'bg-danger' %}
+                        {% elif doc.check_ready %}
+                          {% set status_label = 'check ready' %}
+                          {% set status_class = 'bg-primary' %}
+                        {% else %}
+                          {% set status_label = 'not ready' %}
+                          {% set status_class = 'bg-secondary' %}
+                        {% endif %}
+                        <span class="badge {{ status_class }}">{{ status_label }}</span>
                       </div>
                       <div class="doc-actions">
                         <a href="{{ url_for('candidate.document_details', document_id=doc.document_id, application_id=application_id) }}" class="btn btn-sm btn-info">Details</a>

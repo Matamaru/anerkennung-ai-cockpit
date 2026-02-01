@@ -37,23 +37,27 @@
       <dt class="col-sm-3">OCR Source</dt>
       <dd class="col-sm-9">{{ document.ocr_source or "unknown" }}</dd>
 
-      <dt class="col-sm-3">Review Status</dt>
+      <dt class="col-sm-3">Status</dt>
       <dd class="col-sm-9">
         {% set review_status = document.review_status or 'pending' %}
-        <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">
-          {{ review_status }}
-        </span>
+        {% if review_status == 'approved' %}
+          {% set status_label = 'approved' %}
+          {% set status_class = 'bg-success' %}
+        {% elif review_status == 'declined' %}
+          {% set status_label = 'declined' %}
+          {% set status_class = 'bg-danger' %}
+        {% elif document.check_ready %}
+          {% set status_label = 'check ready' %}
+          {% set status_class = 'bg-primary' %}
+        {% else %}
+          {% set status_label = 'not ready' %}
+          {% set status_class = 'bg-secondary' %}
+        {% endif %}
+        <span class="badge {{ status_class }}">{{ status_label }}</span>
       </dd>
 
       <dt class="col-sm-3">Review Comment</dt>
       <dd class="col-sm-9">{{ document.review_comment or "" }}</dd>
-
-      <dt class="col-sm-3">Check Ready</dt>
-      <dd class="col-sm-9">
-        <span class="badge {% if document.check_ready %}bg-success{% else %}bg-secondary{% endif %}">
-          {{ "check ready" if document.check_ready else "not ready" }}
-        </span>
-      </dd>
     </dl>
 
     {% if document.validation_errors and document.validation_errors.errors %}

@@ -88,12 +88,22 @@
                             <div class="small text-muted">{{ doc.document_type_name }} · {{ doc.filename }}</div>
                           </div>
                           <div class="d-flex flex-column align-items-end me-2">
-                            <span class="badge {% if doc.check_ready %}bg-success{% else %}bg-secondary{% endif %} mb-1">
-                              {{ "check ready" if doc.check_ready else "not ready" }}
-                            </span>
                             {% set review_status = doc.review_status or 'pending' %}
-                            <span class="badge {% if review_status == 'approved' %}bg-success{% elif review_status == 'declined' %}bg-danger{% else %}bg-secondary{% endif %}">
-                              {{ review_status }}
+                            {% if review_status == 'approved' %}
+                              {% set status_label = 'approved' %}
+                              {% set status_class = 'bg-success' %}
+                            {% elif review_status == 'declined' %}
+                              {% set status_label = 'declined' %}
+                              {% set status_class = 'bg-danger' %}
+                            {% elif doc.check_ready %}
+                              {% set status_label = 'check ready' %}
+                              {% set status_class = 'bg-primary' %}
+                            {% else %}
+                              {% set status_label = 'not ready' %}
+                              {% set status_class = 'bg-secondary' %}
+                            {% endif %}
+                            <span class="badge {{ status_class }}">
+                              {{ status_label }}
                             </span>
                           </div>
                           <div class="btn-group">
