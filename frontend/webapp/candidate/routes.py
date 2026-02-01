@@ -694,7 +694,7 @@ def _document_form_schema(doc_type_name: str | None) -> list[dict]:
             {"key": "degree_type", "label": "Degree Type", "source_keys": ["degree_type", "degree_type_guess"]},
             {"key": "program_or_field", "label": "Program / Field", "source_keys": ["program_or_field", "program_guess", "field_of_study"]},
             {"key": "graduation_status", "label": "Graduation Status", "source_keys": ["graduation_status"]},
-            {"key": "graduation_date", "label": "Graduation Date", "source_keys": ["graduation_date", "issue_date_guess", "dates", "dates_detected"]},
+            {"key": "graduation_date", "label": "Graduation Date (YYYY-MM-DD)", "source_keys": ["graduation_date", "issue_date_guess", "dates", "dates_detected"]},
             {"key": "location", "label": "Location", "source_keys": ["location", "location_guess"]},
             {"key": "diploma_number", "label": "Diploma Number", "source_keys": ["diploma_number", "diploma_number_guess"]},
         ]
@@ -707,6 +707,7 @@ def _build_document_form_fields(document: dict | None, profile: dict | None = No
     fields = document.get("ocr_extracted_data") or {}
     schema = _document_form_schema(document.get("document_type_name"))
     mandatory = set(_mandatory_fields_for_doc_type(document.get("document_type_name")))
+    profile_last = (profile.get("last_name") or "").strip() if profile else ""
     error_list = (document.get("validation_errors") or {}).get("errors", []) if document else []
     if not schema:
         raw_fields = [
@@ -732,6 +733,10 @@ def _build_document_form_fields(document: dict | None, profile: dict | None = No
                 fields,
             ),
         }
+        if key == "holder_birth_name":
+            holder_last = (fields.get("holder_last_name") or "").strip()
+            if profile_last and holder_last and holder_last.lower() != profile_last.lower():
+                mandatory.add("holder_birth_name")
         field["required"] = key in mandatory
         field["ready"] = (not field["required"]) or (field.get("value") not in ("", None))
         field["errors"] = [e for e in error_list if key in e]
@@ -751,6 +756,15 @@ def _mandatory_fields_for_doc_type(doc_type_name: str | None) -> list[str]:
             "sex",
             "expiry_date",
             "issuing_country",
+        ]
+    if "diploma" in name or "degree" in name or "certificate" in name:
+        return [
+            "holder_first_name",
+            "holder_last_name",
+            "institution_name",
+            "program_or_field",
+            "graduation_date",
+            "location",
         ]
     return []
 
@@ -819,6 +833,13 @@ def _evaluate_document_fields(doc_type_name: str | None, fields: dict) -> tuple[
             if updated.get(date_key) and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated[date_key]):
                 errors.append(f"{date_key} is invalid")
 
+    if "diploma" in (doc_type_name or "").lower() or "degree" in (doc_type_name or "").lower():
+        profile = _get_user_profile(current_user.id)
+        profile_last = (profile.get("last_name") or "").strip() if profile else ""
+        holder_last = (updated.get("holder_last_name") or "").strip()
+        if profile_last and holder_last and holder_last.lower() != profile_last.lower():
+            if not updated.get("holder_birth_name"):
+                errors.append("holder_birth_name is required when last name differs from profile")
     check_ready = (len(errors) == 0) if mandatory else True
     return updated, check_ready, {"errors": errors}
 
