@@ -678,9 +678,9 @@ def _document_form_schema(doc_type_name: str | None) -> list[dict]:
             {"key": "surname_birth", "label": "Birth/Former Name", "source_keys": ["surname_birth", "surname_previous"]},
             {"key": "nationality", "label": "Nationality", "source_keys": ["nationality"]},
             {"key": "passport_number", "label": "Passport Number", "source_keys": ["passport_number", "document_number"]},
-            {"key": "birth_date", "label": "Birth Date", "source_keys": ["birth_date", "birth_date_raw"]},
+            {"key": "birth_date", "label": "Birth Date (YYYY-MM-DD)", "source_keys": ["birth_date", "birth_date_raw"]},
             {"key": "sex", "label": "Sex", "source_keys": ["sex"]},
-            {"key": "expiry_date", "label": "Expiry Date", "source_keys": ["expiry_date", "expiry_date_raw"]},
+            {"key": "expiry_date", "label": "Expiry Date (YYYY-MM-DD)", "source_keys": ["expiry_date", "expiry_date_raw"]},
             {"key": "issuing_country", "label": "Issuing Country", "source_keys": ["issuing_country"]},
             {"key": "personal_number", "label": "Personal Number", "source_keys": ["personal_number"]},
         ]
